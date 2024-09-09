@@ -7,8 +7,6 @@ Licensed under the MIT License (see LICENSE for details)
 Written by Waleed Abdulla
 """
 
-# pylint: disable=reportMissingImports
-
 import os
 import random
 import datetime
@@ -21,11 +19,6 @@ import numpy as np
 
 import tensorflow as tf
 import keras
-
-# import keras.backend as K
-# import keras.layers as KL
-# import keras.engine as KE
-# import keras.models as KM
 
 import tensorflow.keras.backend as K
 import tensorflow.keras.layers as KL
