@@ -13,12 +13,20 @@ from pycocotools import mask as maskUtils
 class bepDataset(Dataset):
     """
     Class to load the BEP data.
+    
     """
+    
     class_variable_mapping = {
-        'mono': 1,
-        'few': 2,
-        'thick': 3
+        'mono': 1,  # 1 layer           / 0.7 nm
+        'few': 2,   # 2 - 10 layers     / 1.4 - 7 nm 
+        'thick': 3  # 10 - 40 layers    / 7 - 28 nm
     }
+     
+    def __init__(self):
+        super().__init__()
+        
+        self.annotation_id = 1
+        
             
     def convert_annotations_to_coco(self, annotations_file: str, img_dir: str):
         """
@@ -52,8 +60,6 @@ class bepDataset(Dataset):
             "annotations": [],
             "images": [],
         }
-
-        annotation_id = 1
         
         for row in rows:
             for label in list(row['projects'].values())[0]['labels']:
@@ -67,7 +73,7 @@ class bepDataset(Dataset):
                     bbox = [min(x), min(y), max(x) - min(x), max(y) - min(y)]
                     
                     annotation_info = {
-                        "id": annotation_id,
+                        "id": self.annotation_id,
                         "image_id": row['data_row']['external_id'],
                         "category_id": self.class_variable_mapping[obj['value']],
                         "segmentation": [segmentation],
@@ -77,7 +83,7 @@ class bepDataset(Dataset):
                         "source": "ali"
                     }
                     coco_format['annotations'].append(annotation_info)
-                    annotation_id += 1
+                    self.annotation_id += 1
                     
         imgs = [i for i in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, i))]
         
@@ -102,13 +108,13 @@ class bepDataset(Dataset):
         
         return None
     
-    def load_dir(self, path: str, data_type: str, reload_annotations=False):
+    def load_dir(self, path: str, data: str, reload_annotations=False):
         """"Function to load image directory"""
-        img_dir = os.path.join(path, data_type)
-        annotations_file = os.path.join(path, 'annotations', f'{data_type}')
+        data_dir = os.path.join(path, 'images', data)
+        annotations_file = os.path.join(path, 'annotations', data)
         
         if not os.path.isfile(annotations_file+'.json') or reload_annotations:
-            self.convert_annotations_to_coco(annotations_file, img_dir)
+            self.convert_annotations_to_coco(annotations_file, data_dir)
                         
         coco = COCO(annotations_file + '.json')
         
@@ -122,7 +128,7 @@ class bepDataset(Dataset):
             self.add_image(
                 "ali",
                 image_id=i,
-                path=os.path.join(img_dir, coco.imgs[i]['file_name']),
+                path=os.path.join(data_dir, coco.imgs[i]['file_name']),
                 width=coco.imgs[i]["width"],
                 height=coco.imgs[i]["height"],
                 annotations=coco.loadAnns(coco.getAnnIds(
@@ -130,6 +136,18 @@ class bepDataset(Dataset):
                     catIds=class_ids,
                     iscrowd=None
                 )))
+        
+        return None
+            
+    def load_multiple_dir(self, path: str, dirs: list, reload_annotations=False):
+        """Function to load multiple directories, such as multiple batches.
+        All directories are accessed by using the given path."""
+        
+        for dir in dirs:
+            self.load_dir(path, dir, reload_annotations)
+        
+        return None
+            
     
     def load_mask(self, image_id):
         """Load instance masks for the given image.
