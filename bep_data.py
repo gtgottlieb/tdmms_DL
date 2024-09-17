@@ -221,7 +221,7 @@ class bepDataset(Dataset):
         m = maskUtils.decode(rle)
         return m
     
-    @classmethod
+    @staticmethod
     def generate_bbox(polygon: list):
         """Function to generate the bbox from a polygon object."""
         x = [point["x"] for point in polygon]
@@ -230,7 +230,7 @@ class bepDataset(Dataset):
         
         return bbox
     
-    @classmethod
+    @staticmethod
     def generate_segmentation(polygon: list):
         """Function to generate a segmentation list from a polygon object."""
         segmentation = []
@@ -239,7 +239,7 @@ class bepDataset(Dataset):
         
         return segmentation
     
-    @classmethod
+    @staticmethod
     def get_image_info(img_dir: str):
         """Function to get all image files from directory and image
         width and height."""
