@@ -26,6 +26,7 @@ class bepDataset(Dataset):
         super().__init__()
         
         self.annotation_id = 1
+        self.image_id = 1
         
             
     def convert_annotations_to_coco(self, annotations_file: str, img_dir: str):
@@ -63,14 +64,9 @@ class bepDataset(Dataset):
         
         for row in rows:
             for label in list(row['projects'].values())[0]['labels']:
-                for obj in label['annotations']['objects']:
-                    segmentation = []
-                    for point in obj["polygon"]:
-                        segmentation += [point["x"], point["y"]]
-                    
-                    x = [point["x"] for point in obj["polygon"]]
-                    y = [point["y"] for point in obj["polygon"]]
-                    bbox = [min(x), min(y), max(x) - min(x), max(y) - min(y)]
+                for obj in label['annotations']['objects']:                        
+                    segmentation = self.generate_segmentation(obj['polygon'])
+                    bbox = self.generate_bbox(obj['polygon'])
                     
                     annotation_info = {
                         "id": self.annotation_id,
@@ -80,19 +76,16 @@ class bepDataset(Dataset):
                         "area": bbox[2] * bbox[3],
                         "bbox": bbox,
                         "iscrowd": 0,
-                        "source": "ali"
+                        "source": 'ali'
                     }
                     coco_format['annotations'].append(annotation_info)
                     self.annotation_id += 1
                     
-        imgs = [i for i in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, i))]
+        imgs, img_height, img_width = self.get_image_info(img_dir)
         
-        img_sample = cv2.imread(os.path.join(img_dir, imgs[0]))
-        img_height, img_width, _ = img_sample.shape
-        
-        for idx, img in enumerate(imgs):
+        for img in imgs:
             coco_format['images'].append({
-                "id": idx,
+                "id": self.image_id,
                 "path": os.path.join(img_dir, img),
                 "file_name": img,
                 "width": img_width,
@@ -102,6 +95,7 @@ class bepDataset(Dataset):
                 "coco_url": "",
                 "flickr_url": ""
             })
+            self.image_id += 1
                     
         with open(annotations_file+'.json', 'w+') as f:
             json.dump(coco_format, f)
@@ -117,7 +111,6 @@ class bepDataset(Dataset):
             self.convert_annotations_to_coco(annotations_file, data_dir)
                         
         coco = COCO(annotations_file + '.json')
-        
         class_ids = sorted(coco.getCatIds())
         image_ids = list(coco.imgs.keys())
 
@@ -227,6 +220,36 @@ class bepDataset(Dataset):
         rle = self.annToRLE(ann, height, width)
         m = maskUtils.decode(rle)
         return m
+    
+    @classmethod
+    def generate_bbox(polygon: list):
+        """Function to generate the bbox from a polygon object."""
+        x = [point["x"] for point in polygon]
+        y = [point["y"] for point in polygon]
+        bbox = [min(x), min(y), max(x) - min(x), max(y) - min(y)]
+        
+        return bbox
+    
+    @classmethod
+    def generate_segmentation(polygon: list):
+        """Function to generate a segmentation list from a polygon object."""
+        segmentation = []
+        for point in polygon:
+            segmentation += [point['x'], point['x']]
+        
+        return segmentation
+    
+    @classmethod
+    def get_image_info(img_dir: str):
+        """Function to get all image files from directory and image
+        width and height."""
+        
+        imgs = [i for i in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, i))]
+        
+        img_sample = cv2.imread(os.path.join(img_dir, imgs[0]))
+        img_height, img_width, _ = img_sample.shape
+        
+        return imgs, img_height, img_width
         
     def __str__(self):
-        return '\n'.join([i['path'] for i in self.image_info])
+        return 'Images and annotations:\n' + '\n'.join([i for i in self.image_info])
