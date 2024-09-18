@@ -9,11 +9,35 @@ from pycocotools.coco import COCO
 from mrcnn.utils import Dataset
 from pycocotools import mask as maskUtils
 
-
 class bepDataset(Dataset):
     """
     Class to load the BEP data.
     
+    Data should be stored in the following way:
+    
+    data/
+        annotations/ (.ndjson or .json)
+            batch1.ndjson
+            batch2.ndjson
+            .
+            .
+            train.ndjson
+            val.ndjson
+        images/
+            batch1/
+                [image_1_name].png
+                [image_2_name].png
+                .
+                .
+            batch2/
+            .
+            .
+            train/
+            val/
+            
+    Use the check_dir_setup() function from bep_utils.py to
+    check if the directory is setup correctly and create a 
+    train validation split from the batches.
     """
     
     class_variable_mapping = {
@@ -26,8 +50,7 @@ class bepDataset(Dataset):
         super().__init__()
         
         self.annotation_id = 1
-        self.image_id = 1
-        
+        self.image_id = 1        
             
     def convert_annotations_to_coco(self, annotations_file: str, img_dir: str):
         """
@@ -42,7 +65,7 @@ class bepDataset(Dataset):
             - COCO format dictionary
         """
         with open(annotations_file+'.ndjson') as f:
-            rows = [json.loads(l) for l in f.readlines()]
+            rows = [json.loads(l.replace('\'', '\"')) for l in f.readlines()]
             
         coco_format = {
             "info": {
@@ -134,7 +157,10 @@ class bepDataset(Dataset):
             
     def load_multiple_dir(self, path: str, dirs: list, reload_annotations=False):
         """Function to load multiple directories, such as multiple batches.
-        All directories are accessed by using the given path."""
+        All directories are accessed by using the given path.
+        
+        'dirs' example: ['batch1', 'batch2', 'batch3']
+        """
         
         for dir in dirs:
             self.load_dir(path, dir, reload_annotations)
