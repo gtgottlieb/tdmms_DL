@@ -65,7 +65,8 @@ class bepDataset(Dataset):
             - COCO format dictionary
         """
         with open(annotations_file+'.ndjson') as f:
-            rows = [json.loads(l.replace('\'', '\"')) for l in f.readlines()]
+            rows = [json.loads(l) for l in f.readlines()]
+            # rows = [json.loads(l.replace('\'', '\"')) for l in f.readlines()]
             
         coco_format = {
             "info": {
@@ -279,3 +280,13 @@ class bepDataset(Dataset):
         
     def __str__(self):
         return 'Images and annotations:\n' + '\n'.join([i for i in self.image_info])
+    
+if __name__ == '__main__':
+    ROOT_DIR = os.path.abspath("../../")
+    train = bepDataset()
+    train.load_dir(os.path.join(ROOT_DIR, 'data'), 'batch1', reload_annotations=True)
+    train.prepare()
+    
+    image_id = train.image_ids[0]
+    image = train.load_image(image_id)
+    mask, class_ids = train.load_mask(image_id)
