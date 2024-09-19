@@ -125,7 +125,13 @@ class bepDataset(Dataset):
         
         return None
     
-    def load_dir(self, path: str, data: str, reload_annotations=False):
+    def load_dir(
+        self,
+        path: str, 
+        data: str,
+        reload_annotations: bool=False,
+        return_coco=False
+    ):
         """"Function to load image directory"""
         data_dir = os.path.join(path, 'images', data)
         annotations_file = os.path.join(path, 'annotations', data)
@@ -153,7 +159,10 @@ class bepDataset(Dataset):
                     iscrowd=None
                 )))
         
-        return None
+        if return_coco:
+            return coco
+        else:
+            return None
             
     def load_multiple_dir(self, path: str, dirs: list, reload_annotations=False):
         """Function to load multiple directories, such as multiple batches.

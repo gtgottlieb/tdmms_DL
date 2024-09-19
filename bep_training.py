@@ -1,100 +1,62 @@
-"""Module to train the AI and update the weights"""
+"""Module to train the AI"""
 
 import os
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
 import sys
-import time
-import numpy as np
-import imgaug  # https://github.com/aleju/imgaug (pip3 install imgaug)
+import argparse
 from imgaug import augmenters as iaa
 
-# Download and install the Python COCO tools from https://github.com/waleedka/coco
-# That's a fork from the original https://github.com/pdollar/coco with a bug
-# fix for Python 3.
-# I submitted a pull request https://github.com/cocodataset/cocoapi/pull/50
-# If the PR is merged then use the original repo.
-# Note: Edit PythonAPI/Makefile and replace "python" with "python3".
-from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
-from pycocotools import mask as maskUtils
+from tdmcoco import CocoConfig, evaluate_coco
 
-import zipfile
-import urllib.request
-import shutil
+from bep_data import bepDataset
+from bep_utils import check_dir_setup
 
-# Root directory of the project
-ROOT_DIR = os.path.abspath("./")
+ROOT_DIR = os.path.abspath("../")
+sys.path.append(ROOT_DIR)
 
-# Import Mask RCNN
-sys.path.append(ROOT_DIR)  # To find local version of the library
 from mrcnn.config import Config
 from mrcnn import model as modellib, utils
 
-# Path to trained weights file
-COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
 
-# Directory to save logs and model checkpoints, if not provided
-# through the command line argument --logs
+COCO_MODEL_PATH = os.path.join(ROOT_DIR, 'DL_2DMaterials\\DL_2DMaterials\\ModelWeights_DL_2DMaterials\\', 'graphene_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
-DEFAULT_DATASET_YEAR = "2019"
-
-import argparse
 
 def train_model():
-    import argparse
-
-    # Parse command line arguments
     parser = argparse.ArgumentParser(
         description='Train Mask R-CNN on MS COCO.')
-    parser.add_argument("command",
-                        metavar="<command>",
-                        help="'train' or 'evaluate' on MS COCO")
-    parser.add_argument('--dataset', required=True,
-                        metavar="/path/to/coco/",
-                        help='Directory of the MS-COCO dataset')
-    parser.add_argument('--year', required=False,
-                        default=DEFAULT_DATASET_YEAR,
-                        metavar="<year>",
-                        help='Year of the MS-COCO dataset (2014 or 2017) (default=2014)')
-    parser.add_argument('--model', required=True,
-                        metavar="/path/to/weights.h5",
-                        help="Path to weights .h5 file or 'coco'")
-    parser.add_argument('--logs', required=False,
-                        default=DEFAULT_LOGS_DIR,
-                        metavar="/path/to/logs/",
-                        help='Logs and checkpoints directory (default=logs/)')
-    parser.add_argument('--limit', required=False,
-                        default=500,
-                        metavar="<image count>",
-                        help='Images to use for evaluation (default=500)')
-    parser.add_argument('--download', required=False,
-                        default=False,
-                        metavar="<True|False>",
-                        help='Automatically download and unzip MS-COCO files (default=False)',
-                        type=bool)
-    parser.add_argument('--excludelastlayers', required=False,
-                        default=False,
-                        metavar="<True|False>",
-                        help="Exclude last layers during loading weights",
-                        type=bool)
+    parser.add_argument(
+        "command",
+        metavar="<command>",
+        help="'train' or 'evaluate' on MS COCO"
+    )
+    parser.add_argument(
+        '--model',
+        required=True,
+        metavar="/path/to/weights.h5",
+        help="Path to weights .h5 file or 'coco'"
+    )
+    parser.add_argument(
+        '--logs',
+        required=False,
+        default=DEFAULT_LOGS_DIR,
+        metavar="/path/to/logs/",
+        help='Logs and checkpoints directory (default=logs/)'
+    )
+    parser.add_argument(
+        '--excludelastlayers',
+        required=False,
+        default=False,
+        metavar="<True|False>",
+        help="Exclude last layers during loading weights",
+        type=bool
+    )
     
     args = parser.parse_args()
     
-    print('Input commands:')
     print("Command: ", args.command)
     print("Model: ", args.model)
-    print("Dataset: ", args.dataset)
-    print("Year: ", args.year)
-    print("Logs: ", args.logs)
-    print("Auto Download: ", args.download)
-    print("Exclude Last Layers: ", args.excludelastlayers)
     
-    
-
-    return None
-    
-    # Configurations
     if args.command == "train":
         config = CocoConfig()
     else:
@@ -107,7 +69,6 @@ def train_model():
         config = InferenceConfig()
     config.display()
 
-    # Create model
     if args.command == "train":
         model = modellib.MaskRCNN(mode="training", config=config,
                                   model_dir=args.logs)
@@ -115,17 +76,16 @@ def train_model():
         model = modellib.MaskRCNN(mode="inference", config=config,
                                   model_dir=args.logs)
 
-    # Select weights file to load
     if args.model.lower() == "coco":
         model_path = COCO_MODEL_PATH
-    elif args.model.lower() == "last":
-        # Find last trained weights
-        model_path = model.find_last()
-    elif args.model.lower() == "imagenet":
-        # Start from ImageNet trained weights
-        model_path = model.get_imagenet_weights()
-    else:
-        model_path = args.model
+    # elif args.model.lower() == "last":
+    #     # Find last trained weights
+    #     model_path = model.find_last()
+    # elif args.model.lower() == "imagenet":
+    #     # Start from ImageNet trained weights
+    #     model_path = model.get_imagenet_weights()
+    # else:
+    #     model_path = args.model
 
     # Load weights
     print("Loading weights ", model_path)
@@ -139,29 +99,17 @@ def train_model():
     else:
         model.load_weights(model_path, by_name=True)
         
-    # Train or evaluate
     if args.command == "train":
-        # Training dataset. Use the training set and 35K from the
-        # validation set, as as in the Mask RCNN paper.
-        dataset_train = CocoDataset()
-        dataset_train.load_coco(args.dataset, "train", year=args.year, auto_download=args.download)
-        if args.year in '2014':
-            dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
+        check_dir_setup(ROOT_DIR, 0.7)
+        
+        dataset_train = bepDataset()
+        dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train')
         dataset_train.prepare()
 
-        # Validation dataset
-        dataset_val = CocoDataset()
-        #val_type = "val" if args.year in '2017' else "minival"
-        val_type = "val" #Overrided to fit dataformat for 2dmaterials
-        dataset_val.load_coco(args.dataset, val_type, year=args.year, auto_download=args.download)
+        dataset_val = bepDataset()
+        dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val')
         dataset_val.prepare()
 
-        # Image Augmentation
-        # Right/Left flip 50% of the time
-        #augmentation = imgaug.augmenters.Fliplr(0.5)
-        #augmentation = None
-        # Image augmentation
-        # http://imgaug.readthedocs.io/en/latest/source/augmenters.html
         augmentation = iaa.SomeOf((0, None), [
             iaa.Fliplr(0.5),
             iaa.Flipud(0.5),
@@ -233,13 +181,10 @@ def train_model():
                     augmentation=augmentation)
              
     elif args.command == "evaluate":
-        # Validation dataset
-        dataset_val = CocoDataset()
-        val_type = "val" 
-        coco = dataset_val.load_coco(args.dataset,
-                                     val_type, year=args.year,
-                                     return_coco=True, auto_download=args.download)
+        dataset_val = bepDataset()
+        coco = dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', return_coco=True)
         dataset_val.prepare()
+
         print("Running COCO evaluation on {} images.".format(args.limit))
         model.keras_model.save("mrcnn_eval.h5")
         json_string = model.keras_model.to_json()
@@ -255,5 +200,4 @@ def train_model():
     
     
 if __name__ == '__main__':
-    print('Running train_model()')
     train_model()

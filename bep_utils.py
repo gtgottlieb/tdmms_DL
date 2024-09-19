@@ -8,7 +8,7 @@ import shutil
 data_types = ['images', 'annotations']
 data_sets = ['train', 'val']
 
-def check_dir_setup(ROOT_DIR, train_size):
+def check_dir_setup(ROOT_DIR: str, train_size: float):
     """Function to check if the directory is setup correctly.
     Like:
         data/
@@ -42,8 +42,10 @@ def check_dir_setup(ROOT_DIR, train_size):
                 print(f'{path} did not exist')
                 create_dir_setup(ROOT_DIR, train_size)
                 return None
+            
+    print('Directory setup correctly')
 
-def create_dir_setup(ROOT_DIR, train_size):
+def create_dir_setup(ROOT_DIR: str, train_size: float):
     """Function to reset and create train and validation directories."""
     
     print('Creating directories from batches..')
@@ -55,7 +57,7 @@ def create_dir_setup(ROOT_DIR, train_size):
     data_split_images(batches, ROOT_DIR, train_size)
     data_split_annotations(batches, ROOT_DIR)
     
-def reset_dirs(ROOT_DIR):
+def reset_dirs(ROOT_DIR: str):
     """Function to reset the image and annotation directories of the
     train and validation sets."""
     # Reset image directory
@@ -82,7 +84,7 @@ def reset_dirs(ROOT_DIR):
                 
     return None
                         
-def data_split_images(batches, ROOT_DIR, train_size):
+def data_split_images(batches: list, ROOT_DIR: str, train_size: float):
     """Function to load the images from all found batches and split the 
     images into a train and validation set."""
     imgs_batches = []
@@ -116,9 +118,14 @@ def data_split_images(batches, ROOT_DIR, train_size):
 
     return None
 
-def data_split_annotations(batches, ROOT_DIR):
+def data_split_annotations(batches: list, ROOT_DIR: str):
     """Function to load the annotations from all found batches and split the 
-    annotations into a train and validation set."""
+    annotations into a train and validation set.
+    
+    TODO: 'f.write(str(row)+'\n')' writes the .ndjson lines as a string, containing
+    ' instead of ", and ' is no .json. It work with a .replace when reading the files.
+    But it can better be fixed here.
+    """
     rows = []
     for batch in batches:
         with open(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')) as f:
