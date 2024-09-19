@@ -1,4 +1,7 @@
-# Mask R-CNN for 2D Materials Detection
+# Mask R-CNN for 2D Materials Detection Fine-tuned on NbSe2
+
+**This is a fork repository that is focussed on fine-tuning the original model on a custom dataset of NbSe2 flakes.**
+
 This repository provides information for utilizing Deep-learning based image segmentation algorithms for detecting atomically thin two-dimensional materials in the optical microscopy images. The related publications are: 
 
 * "Autonomous robotic searching and assembly of two-dimensional crystals to build van der Waals superlattices," Satoru Masubuchi *et al.*, Nature Communications **9**, Article number: 1413 (2018). https://www.nature.com/articles/s41467-018-03723-w
