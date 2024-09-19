@@ -262,7 +262,7 @@ class bepDataset(Dataset):
         """Function to generate a segmentation list from a polygon object."""
         segmentation = []
         for point in polygon:
-            segmentation += [point['x'], point['x']]
+            segmentation += [point['x'], point['y']]
         
         return segmentation
     
