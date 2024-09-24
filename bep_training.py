@@ -32,7 +32,8 @@ def train_model():
     )
     parser.add_argument(
         '--model',
-        required=True,
+        required=False,
+        default='coco',
         metavar="/path/to/weights.h5",
         help="Path to weights .h5 file or 'coco'"
     )
@@ -58,15 +59,19 @@ def train_model():
     print("Model: ", args.model)
     
     if args.command == "train":
-        config = CocoConfig()
+        class TrainingConfig(CocoConfig):
+            # Batch size = GPU_COUNT * IMAGES_PER_GPU
+            
+            GPU_COUNT = 4
+            IMAGES_PER_GPU = 2
+        config = TrainingConfig()
     else:
         class InferenceConfig(CocoConfig):
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             
-            # GPU_COUNT = 1
-            GPU_COUNT = 0
-            IMAGES_PER_GPU = 1
+            GPU_COUNT = 4
+            IMAGES_PER_GPU = 2
             DETECTION_MIN_CONFIDENCE = 0
         config = InferenceConfig()
     config.display()
