@@ -13,13 +13,12 @@ from bep_utils import check_dir_setup
 ROOT_DIR = os.path.abspath("../")
 sys.path.append(ROOT_DIR)
 
-from mrcnn.config import Config
-from mrcnn import model as modellib, utils
+from mrcnn import model as modellib
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
 
-COCO_MODEL_PATH = os.path.join(ROOT_DIR, 'DL_2DMaterials\\DL_2DMaterials\\ModelWeights_DL_2DMaterials\\', 'graphene_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
+COCO_MODEL_PATH = os.path.join(ROOT_DIR, 'weights', 'graphene_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
 def train_model():
