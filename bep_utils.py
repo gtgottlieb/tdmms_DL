@@ -51,7 +51,7 @@ def create_dir_setup(ROOT_DIR: str, train_size: float):
     print('Creating directories from batches..')
 
     batches = [i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images')) if 'batch' in  i]
-    print('Found batches:',','.join(batches))
+    print('Found batches:',', '.join(batches))
     
     reset_dirs(ROOT_DIR)
     data_split_images(batches, ROOT_DIR, train_size)

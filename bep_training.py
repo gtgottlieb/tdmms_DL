@@ -16,7 +16,7 @@ sys.path.append(ROOT_DIR)
 from mrcnn import model as modellib
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1,2,3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, 'weights', 'graphene_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
@@ -61,16 +61,16 @@ def train_model():
         class TrainingConfig(CocoConfig):
             # Batch size = GPU_COUNT * IMAGES_PER_GPU
             
-            GPU_COUNT = 4
-            IMAGES_PER_GPU = 2
+            GPU_COUNT = 2
+            IMAGES_PER_GPU = 1
         config = TrainingConfig()
     else:
         class InferenceConfig(CocoConfig):
             # Set batch size to 1 since we'll be running inference on
             # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
             
-            GPU_COUNT = 4
-            IMAGES_PER_GPU = 2
+            GPU_COUNT = 2
+            IMAGES_PER_GPU = 1
             DETECTION_MIN_CONFIDENCE = 0
         config = InferenceConfig()
     config.display()
