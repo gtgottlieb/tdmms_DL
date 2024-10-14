@@ -2,10 +2,11 @@
 
 import os
 import sys
+import datetime
+import tensorflow as tf
+
 from imgaug import augmenters as iaa
-
 from tdmcoco import CocoConfig
-
 from bep_data import bepDataset
 from bep_utils import check_dir_setup
 
@@ -20,18 +21,25 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, 'weights', 'graphene_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
+tf_board_log_dir = os.path.join(ROOT_DIR, "logs", "fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tf_board_log_dir, histogram_freq=1)
+
 class TrainingConfig(CocoConfig):
     # Batch size = GPU_COUNT * IMAGES_PER_GPU
     
     GPU_COUNT = 1
     IMAGES_PER_GPU = 2
+    STEPS_PER_EPOCH = 7 # step size = amount of images / batch size
 
 def train_model():   
     config = TrainingConfig()
     # config.display()
 
-    model = modellib.MaskRCNN(mode="training", config=config,
-                                model_dir=DEFAULT_LOGS_DIR)
+    model = modellib.MaskRCNN(
+        mode="training",
+        config=config,
+        model_dir=DEFAULT_LOGS_DIR
+    )
 
 
     # Load weights
@@ -91,11 +99,15 @@ def train_model():
     '''
     # Training - Stage 1
     print("Training network heads")
-    model.train(dataset_train, dataset_val,
-                learning_rate=config.LEARNING_RATE,
-                epochs=1,
-                layers='heads',
-                augmentation=augmentation)
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE,
+        epochs=30,
+        layers='heads',
+        augmentation=augmentation,
+        custom_callbacks=[tensorboard_callback]
+    )
     
     # Training - Stage 2
     # Finetune layers from ResNet stage 4 and up
@@ -121,6 +133,6 @@ def train_model():
     #             epochs=120,
     #             layers='all',
     #             augmentation=augmentation)    
-    
+
 if __name__ == '__main__':
     train_model()
