@@ -10,7 +10,7 @@ from tdmcoco import CocoConfig
 from bep_data import bepDataset
 from bep_utils import check_dir_setup, load_train_val_datasets
 
-ROOT_DIR = os.path.abspath("../../")
+ROOT_DIR = os.path.abspath("../")
 sys.path.append(ROOT_DIR)
 
 from mrcnn import model as modellib

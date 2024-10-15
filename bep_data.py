@@ -290,7 +290,7 @@ class bepDataset(Dataset):
         return 'Images and annotations:\n' + '\n'.join([i for i in self.image_info])
     
 if __name__ == '__main__':
-    ROOT_DIR = os.path.abspath("../../")
+    ROOT_DIR = os.path.abspath("../")
     train = bepDataset()
     train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train', reload_annotations=True)
     train.prepare()

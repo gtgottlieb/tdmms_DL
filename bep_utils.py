@@ -171,6 +171,6 @@ def data_split_annotations(batches: list, ROOT_DIR: str):
                 f.write(str(row)+'\n')
                 
 if __name__ == '__main__':
-    ROOT_DIR = os.path.abspath("../../")
+    ROOT_DIR = os.path.abspath("../")
     check_dir_setup(ROOT_DIR, 0.7)
     # create_dir_setup(ROOT_DIR, 0.7)

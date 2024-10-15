@@ -16,7 +16,7 @@ from bep_utils import (
     create_dir_setup,
 )
 
-ROOT_DIR = os.path.abspath("../../")
+ROOT_DIR = os.path.abspath("../")
 sys.path.append(ROOT_DIR)
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
