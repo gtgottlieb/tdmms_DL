@@ -5,6 +5,7 @@ import sys
 import argparse
 
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+import tensorflow as tf
 
 from tdmcoco import (
     evaluate_coco,
@@ -25,6 +26,9 @@ from mrcnn import model as modellib
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+physical_devices = tf.config.list_physical_devices('GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 category_mapping = {
     1: "Mono_Graphene",
