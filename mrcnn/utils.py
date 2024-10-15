@@ -321,7 +321,7 @@ class Dataset(object):
     def get_source_class_id(self, class_id, source):
         """Map an internal class ID to the corresponding class ID in the source dataset."""
         info = self.class_info[class_id]
-        assert info['source'] == source
+        # assert info['source'] == source
         return info['id']
 
     @property

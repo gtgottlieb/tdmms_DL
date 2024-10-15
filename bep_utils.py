@@ -1,12 +1,37 @@
-"""Module that contains functions."""
+"""Module that contains used functions."""
 
 import json
 import os
 import random
 import shutil
 
+from bep_data import bepDataset
+from tdmcoco import CocoDataset
+
 data_types = ['images', 'annotations']
 data_sets = ['train', 'val']
+
+""""
+Tensorflow logging levels:
+
+0 = all messages are logged (default behavior)
+1 = INFO messages are not printed
+2 = INFO and WARNING messages are not printed
+3 = INFO, WARNING, and ERROR messages are not printed
+
+Set by running: os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+"""
+
+def load_train_val_datasets(ROOT_DIR: str):
+    dataset_train = bepDataset()
+    dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train', reload_annotations=True)
+    dataset_train.prepare()
+
+    dataset_val = bepDataset()
+    dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', reload_annotations=True)
+    dataset_val.prepare()
+
+    return dataset_train, dataset_val
 
 def check_dir_setup(ROOT_DIR: str, train_size: float):
     """Function to check if the directory is setup correctly.

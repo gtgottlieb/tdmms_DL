@@ -2,13 +2,13 @@
 
 import os
 import sys
-import datetime
-import tensorflow as tf
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from imgaug import augmenters as iaa
 from tdmcoco import CocoConfig
 from bep_data import bepDataset
-from bep_utils import check_dir_setup
+from bep_utils import check_dir_setup, load_train_val_datasets
 
 ROOT_DIR = os.path.abspath("../../")
 sys.path.append(ROOT_DIR)
@@ -18,11 +18,13 @@ from mrcnn import model as modellib
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-COCO_MODEL_PATH = os.path.join(ROOT_DIR, 'weights', 'graphene_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
-DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
+COCO_MODEL_PATH = os.path.join(ROOT_DIR, 'weights', 'mos2_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
+DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 
-tf_board_log_dir = os.path.join(ROOT_DIR, "logs", "fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tf_board_log_dir, histogram_freq=1)
+# import datetime
+# import tensorflow as tf
+# tf_board_log_dir = os.path.join(ROOT_DIR, "logs", "fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+# tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tf_board_log_dir, histogram_freq=1)
 
 class TrainingConfig(CocoConfig):
     # Batch size = GPU_COUNT * IMAGES_PER_GPU
@@ -51,14 +53,7 @@ def train_model():
     # model.load_weights(COCO_MODEL_PATH, by_name=True)
         
     check_dir_setup(ROOT_DIR, 0.7)
-    
-    dataset_train = bepDataset()
-    dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train')
-    dataset_train.prepare()
-
-    dataset_val = bepDataset()
-    dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val')
-    dataset_val.prepare()
+    dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
 
     augmentation = iaa.SomeOf((0, None), [
         iaa.Fliplr(0.5),
@@ -106,7 +101,6 @@ def train_model():
         epochs=30,
         layers='heads',
         augmentation=augmentation,
-        custom_callbacks=[tensorboard_callback]
     )
     
     # Training - Stage 2
@@ -132,7 +126,14 @@ def train_model():
     #             learning_rate=config.LEARNING_RATE /100,
     #             epochs=120,
     #             layers='all',
-    #             augmentation=augmentation)    
+    #             augmentation=augmentation)
+    # 
+
+    # TODO: create a folder for the weights, with the weights and a 
+    # text file that contains information about the training and configurations
+    model.keras_model.save(os.path.join(ROOT_DIR, 'saved_weights', "mrcnn_eval.h5"))
+
+    return None   
 
 if __name__ == '__main__':
     train_model()
