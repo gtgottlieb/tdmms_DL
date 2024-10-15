@@ -2,6 +2,7 @@
 
 import os
 import sys
+import argparse
 
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -15,6 +16,7 @@ from bep_utils import (
     check_dir_setup,
     create_dir_setup,
 )
+from bep_data import bepDataset
 
 ROOT_DIR = os.path.abspath("../")
 sys.path.append(ROOT_DIR)
@@ -64,32 +66,63 @@ def evaluate_dataset():
     
     return None
 
-def evaluate_model():
+def evaluate_model(data, model: str='MoS2'):
     config = EvaluationConfig()
     model = modellib.MaskRCNN(
         mode="inference",
         config=config,
         model_dir=DEFAULT_LOGS_DIR
     )
-    model.load_weights(MODEL_PATH, by_name=True)
 
-    # dataset_val = bepDataset()
-    # coco = dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', reload_annotations=True, return_coco=True)
-    # dataset_val.prepare()
+    print('Running evaluation using the {} data and {} weights..'.format(data, model))
 
-    dataset_val = CocoDataset()
-    val_type = "val" 
-    coco = dataset_val.load_coco(
-        os.path.join(ROOT_DIR, 'DL_2DMaterials', 'Dataset_DL_2DMaterials', 'MoS2'),
-        val_type,
-        return_coco=True
-    )
-    dataset_val.prepare()
+    if model == 'MoS2':
+        model.load_weights(MODEL_PATH, by_name=True)
+
+    if data == 'bep':
+        dataset_val = bepDataset()
+        coco = dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', reload_annotations=True, return_coco=True)
+        dataset_val.prepare()
+
+    if data == 'tdmms':
+        dataset_val = CocoDataset()
+        val_type = "val" 
+        coco = dataset_val.load_coco(
+            os.path.join(ROOT_DIR, 'DL_2DMaterials', 'Dataset_DL_2DMaterials', 'MoS2'),
+            val_type,
+            return_coco=True
+        )
+        dataset_val.prepare()
 
     print("Running evaluation on {} images.".format(len(dataset_val.image_ids)))
     evaluate_coco(model, dataset_val, coco, "bbox")
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Evaluate model and dataset'
+    )
+    parser.add_argument(
+        'command',
+        help='model or dataset'
+    )
+    parser.add_argument(
+        '--data', 
+        required=False,
+        default='bep',
+        help='bep or tdmms'
+    )
+    parser.add_argument(
+        '--model', 
+        required=False,
+        default='MoS2',
+        help='bep or MoS2'
+    )
+    args = parser.parse_args()
+
     check_dir_setup(ROOT_DIR, 0.7)
-    # evaluate_dataset()
-    evaluate_model()
+
+    if args.command == 'dataset':
+        evaluate_dataset()
+    
+    if args.command == 'model':
+        evaluate_model(args.data, args.model)
