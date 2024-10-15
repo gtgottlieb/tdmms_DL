@@ -28,7 +28,8 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
+if physical_devices:
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 category_mapping = {
     1: "Mono_Graphene",
