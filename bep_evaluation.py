@@ -3,7 +3,7 @@
 import os
 import sys
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from tdmcoco import (
     evaluate_coco,
@@ -19,10 +19,10 @@ from bep_utils import (
 ROOT_DIR = os.path.abspath("../")
 sys.path.append(ROOT_DIR)
 
+from mrcnn import model as modellib
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-from mrcnn import model as modellib
 
 category_mapping = {
     1: "Mono_Graphene",
