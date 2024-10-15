@@ -70,7 +70,7 @@ def evaluate_dataset():
     
     return None
 
-def evaluate_model(data, model: str='MoS2'):
+def evaluate_model(data, model):
     config = EvaluationConfig()
     model = modellib.MaskRCNN(
         mode="inference",
@@ -88,7 +88,7 @@ def evaluate_model(data, model: str='MoS2'):
         coco = dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', reload_annotations=True, return_coco=True)
         dataset_val.prepare()
 
-    if data == 'tdmms':
+    if data == 'MoS2':
         dataset_val = CocoDataset()
         val_type = "val" 
         coco = dataset_val.load_coco(
@@ -113,7 +113,7 @@ if __name__ == '__main__':
         '--data', 
         required=False,
         default='bep',
-        help='bep or tdmms'
+        help='bep or MoS2'
     )
     parser.add_argument(
         '--model', 
