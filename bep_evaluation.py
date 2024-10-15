@@ -3,12 +3,17 @@
 import os
 import sys
 import argparse
+import time
+import numpy as np
 
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Set the log level of tensorflow, see bep_utils for information.
 import tensorflow as tf
+
+from pycocotools.cocoeval import COCOeval, Params
 
 from tdmcoco import (
     evaluate_coco,
+    build_coco_results,
     CocoConfig, 
     CocoDataset
 )
@@ -71,7 +76,7 @@ def evaluate_dataset():
     
     return None
 
-def evaluate_model(data, model):
+def evaluate_model(data, weights):
     config = EvaluationConfig()
     model = modellib.MaskRCNN(
         mode="inference",
@@ -79,9 +84,9 @@ def evaluate_model(data, model):
         model_dir=DEFAULT_LOGS_DIR
     )
 
-    print('Running evaluation using the {} data and {} weights..'.format(data, model))
+    print('Running evaluation using the {} data and {} weights..'.format(data, weights))
 
-    if model == 'MoS2':
+    if weights == 'MoS2':
         model.load_weights(MODEL_PATH, by_name=True)
 
     if data == 'bep':
@@ -117,7 +122,7 @@ if __name__ == '__main__':
         help='bep or MoS2'
     )
     parser.add_argument(
-        '--model', 
+        '--weights', 
         required=False,
         default='MoS2',
         help='bep or MoS2'
@@ -130,4 +135,4 @@ if __name__ == '__main__':
         evaluate_dataset()
     
     if args.command == 'model':
-        evaluate_model(args.data, args.model)
+        evaluate_model(args.data, args.weights)
