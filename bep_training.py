@@ -8,7 +8,11 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from imgaug import augmenters as iaa
 from tdmcoco import CocoConfig
-from bep_utils import check_dir_setup, load_train_val_datasets
+from bep_utils import (
+    check_dir_setup, 
+    create_dir_setup,
+    load_train_val_datasets
+)
 
 ROOT_DIR = os.path.abspath("../")
 sys.path.append(ROOT_DIR)
@@ -44,7 +48,7 @@ def train_model():
         batch size = gpu count * images per gpu
     """
 
-    check_dir_setup(ROOT_DIR, 0.7)
+    create_dir_setup(ROOT_DIR, 0.7)
     dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
 
     config = TrainingConfig(len(dataset_train.image_ids))
