@@ -241,3 +241,10 @@ class Config(object):
         #     if not a.startswith("__") and not callable(getattr(self, a)):
         #         print("{:30} {}".format(a, getattr(self, a)))
         print("\n")
+    
+    def write_txt(self, path: str):
+        """Write Configuration Values To Text file."""
+        with open(path, 'w+') as f:
+            for key, val in self.to_dict().items():
+                f.write(f"{key:30} {val}")
+                f.write('\n')

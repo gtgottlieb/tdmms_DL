@@ -2,12 +2,12 @@
 
 import os
 import sys
+import datetime
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from imgaug import augmenters as iaa
 from tdmcoco import CocoConfig
-from bep_data import bepDataset
 from bep_utils import check_dir_setup, load_train_val_datasets
 
 ROOT_DIR = os.path.abspath("../")
@@ -26,16 +26,27 @@ DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 # tf_board_log_dir = os.path.join(ROOT_DIR, "logs", "fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 # tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tf_board_log_dir, histogram_freq=1)
 
-class TrainingConfig(CocoConfig):
-    # Batch size = GPU_COUNT * IMAGES_PER_GPU
-    
+class TrainingConfig(CocoConfig):  
     GPU_COUNT = 1
     IMAGES_PER_GPU = 2
-    STEPS_PER_EPOCH = 7 # step size = amount of images / batch size
 
-def train_model():   
-    config = TrainingConfig()
-    # config.display()
+    def __init__(self, train_images: int):
+        self.STEPS_PER_EPOCH = train_images / (self.GPU_COUNT * self.IMAGES_PER_GPU)
+
+def train_model():
+    """
+    Function to train MRCNN.
+
+    The epoch step size is the amount of iterations per epoch:
+        step size = amount of images / batch size 
+        batch size = gpu count * images per gpu
+    """
+
+    check_dir_setup(ROOT_DIR, 0.7)
+    dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
+
+    config = TrainingConfig(len(dataset_train.image_ids))
+    config.display()
 
     model = modellib.MaskRCNN(
         mode="training",
@@ -43,17 +54,9 @@ def train_model():
         model_dir=DEFAULT_LOGS_DIR
     )
 
-
-    # Load weights
     print("Loading weights ", COCO_MODEL_PATH)
-
-    model.load_weights(COCO_MODEL_PATH, by_name=True, exclude=[
-            "mrcnn_class_logits", "mrcnn_bbox_fc",
-            "mrcnn_bbox", "mrcnn_mask"])
-    # model.load_weights(COCO_MODEL_PATH, by_name=True)
-        
-    check_dir_setup(ROOT_DIR, 0.7)
-    dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
+    model.load_weights(COCO_MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"]) # Model weights for coco model
+    # model.load_weights(COCO_MODEL_PATH, by_name=True) # Model weights for a different model??
 
     augmentation = iaa.SomeOf((0, None), [
         iaa.Fliplr(0.5),
@@ -92,6 +95,7 @@ def train_model():
                     iaa.Affine(rotate=270)])
     ])
     '''
+
     # Training - Stage 1
     print("Training network heads")
     model.train(
@@ -131,7 +135,12 @@ def train_model():
 
     # TODO: create a folder for the weights, with the weights and a 
     # text file that contains information about the training and configurations
-    model.keras_model.save(os.path.join(ROOT_DIR, 'saved_weights', "mrcnn_eval.h5"))
+    model_version = 'NbSe2_weights_'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    os.mkdir(os.path.join(ROOT_DIR, 'saved_weights', model_version))
+    
+    config.write_txt(os.path.join(ROOT_DIR, 'saved_weights', model_version))
+    model.keras_model.save(os.path.join(ROOT_DIR, 'saved_weights', model_version+".h5"))
 
     return None   
 
