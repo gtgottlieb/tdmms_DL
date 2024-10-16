@@ -155,8 +155,8 @@ def train_model(computer):
 
     os.mkdir(os.path.join(ROOT_DIR, 'saved_weights', model_version))
     
-    config.write_txt(os.path.join(ROOT_DIR, 'saved_weights', model_version))
-    model.keras_model.save(os.path.join(ROOT_DIR, 'saved_weights', model_version+".h5"))
+    config.write_txt(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'config.txt'))
+    model.keras_model.save(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'mask_rcnn_tdm_final.h5'))
 
     return None   
 
