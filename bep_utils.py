@@ -33,6 +33,17 @@ def load_train_val_datasets(ROOT_DIR: str):
 
     return dataset_train, dataset_val
 
+def load_train_val_datasets_tdmms(ROOT_DIR: str, material: str = 'MoS2'):
+    dataset_train = CocoDataset()
+    dataset_train.load_coco(os.path.join(ROOT_DIR, 'DL_2DMaterials', 'Dataset_DL_2DMaterials', material), 'train')
+    dataset_train.prepare()
+
+    dataset_val = CocoDataset()
+    dataset_val.load_coco(os.path.join(ROOT_DIR, 'DL_2DMaterials', 'Dataset_DL_2DMaterials', material), 'val')
+    dataset_val.prepare()
+
+    return dataset_train, dataset_val
+
 def check_dir_setup(ROOT_DIR: str, train_size: float):
     """Function to check if the directory is setup correctly.
     Like:

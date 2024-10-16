@@ -1,24 +1,28 @@
-"""Module to evaluate the AI"""
+"""
+Module to evaluate the AI
+
+How to run:
+$ py bep_evaluation.py <model or dataset> --material <NbSe2 or MoS2> --weights MoS2
+
+"""
 
 import os
 import sys
 import argparse
-import time
-import numpy as np
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Set the log level of tensorflow, see bep_utils for information.
 import tensorflow as tf
 
-from pycocotools.cocoeval import COCOeval, Params
+# from bep_cocoeval import evaluate_coco
 
 from tdmcoco import (
-    evaluate_coco,
-    build_coco_results,
     CocoConfig, 
-    CocoDataset
+    CocoDataset,
+    evaluate_coco
 )
 from bep_utils import (
     load_train_val_datasets,
+    load_train_val_datasets_tdmms,
     check_dir_setup,
     create_dir_setup,
 )
@@ -37,9 +41,9 @@ if physical_devices:
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 category_mapping = {
-    1: "Mono_Graphene",
-    2: "Few_Graphene",
-    3: "Thick_Graphene"
+    1: "Mono_",
+    2: "Few_",
+    3: "Thick_"
 }
 
 class EvaluationConfig(CocoConfig):
@@ -50,14 +54,16 @@ class EvaluationConfig(CocoConfig):
     DETECTION_MIN_CONFIDENCE = 0
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'evaluation')
-MODEL_PATH = os.path.join(ROOT_DIR, 'weights', 'mos2_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
 
-def evaluate_dataset():
-    dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
+def evaluate_dataset(material):
+    if material == 'NbSe2':
+        dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
+    else:
+        dataset_train, dataset_val = load_train_val_datasets_tdmms(ROOT_DIR, material)
 
-    all_cls_train = [[category_mapping[j['category_id']] for j in i['annotations']] for i in dataset_train.image_info]
+    all_cls_train = [[category_mapping[j['category_id']]+material for j in i['annotations']] for i in dataset_train.image_info]
     all_cls_train = [i for j in all_cls_train for i in j]
-    all_cls_val = [[category_mapping[j['category_id']] for j in i['annotations']] for i in dataset_val.image_info]
+    all_cls_val = [[category_mapping[j['category_id']]+material for j in i['annotations']] for i in dataset_val.image_info]
     all_cls_val = [i for j in all_cls_val for i in j]
 
     print('')
@@ -76,7 +82,7 @@ def evaluate_dataset():
     
     return None
 
-def evaluate_model(data, weights):
+def evaluate_model(material: str, weights: str):
     config = EvaluationConfig()
     model = modellib.MaskRCNN(
         mode="inference",
@@ -84,21 +90,22 @@ def evaluate_model(data, weights):
         model_dir=DEFAULT_LOGS_DIR
     )
 
-    print('Running evaluation using the {} data and {} weights..'.format(data, weights))
+    print('Running evaluation using the {} data and {} weights..'.format(material, weights))
 
-    if weights == 'MoS2':
-        model.load_weights(MODEL_PATH, by_name=True)
+    if weights != 'NbSe2':
+        MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights.lower()+'_mask_rcnn_tdm_0120.h5')
 
-    if data == 'bep':
+    model.load_weights(MODEL_PATH, by_name=True)
+
+    if material == 'NbSe2':
         dataset_val = bepDataset()
         coco = dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', reload_annotations=True, return_coco=True)
         dataset_val.prepare()
-
-    if data == 'MoS2':
+    else:
         dataset_val = CocoDataset()
         val_type = "val" 
         coco = dataset_val.load_coco(
-            os.path.join(ROOT_DIR, 'DL_2DMaterials', 'Dataset_DL_2DMaterials', 'MoS2'),
+            os.path.join(ROOT_DIR, 'DL_2DMaterials', 'Dataset_DL_2DMaterials', material),
             val_type,
             return_coco=True
         )
@@ -116,23 +123,23 @@ if __name__ == '__main__':
         help='model or dataset'
     )
     parser.add_argument(
-        '--data', 
+        '--material', 
         required=False,
-        default='bep',
-        help='bep or MoS2'
+        default='NbSe2',
+        help='NbSe2 or MoS2'
     )
     parser.add_argument(
         '--weights', 
         required=False,
         default='MoS2',
-        help='bep or MoS2'
+        help='NbSe2 or MoS2'
     )
     args = parser.parse_args()
 
     check_dir_setup(ROOT_DIR, 0.7)
 
     if args.command == 'dataset':
-        evaluate_dataset()
+        evaluate_dataset(args.material)
     
     if args.command == 'model':
-        evaluate_model(args.data, args.weights)
+        evaluate_model(args.material, args.weights)

@@ -77,9 +77,9 @@ class bepDataset(Dataset):
                 "contributor": "Abel de Lange"
             },
             "categories": [
-                {"id": 1, "name": "Mono_Graphene"},
-                {"id": 2, "name": "Few_Graphene"},
-                {"id": 3, "name": "Thick_Graphene"}
+                {"id": 1, "name": "Mono_NbSe2"},
+                {"id": 2, "name": "Few_NbSe2"},
+                {"id": 3, "name": "Thick_NbSe2"}
             ],
             "annotations": [],
             "images": [],
