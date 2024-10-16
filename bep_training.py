@@ -3,6 +3,7 @@
 import os
 import sys
 import datetime
+import argparse
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -39,7 +40,7 @@ class TrainingConfig(CocoConfig):
     
         self.STEPS_PER_EPOCH = train_images / (self.GPU_COUNT * self.IMAGES_PER_GPU)
 
-def train_model():
+def train_model(computer):
     """
     Function to train MRCNN.
 
@@ -48,7 +49,10 @@ def train_model():
         batch size = gpu count * images per gpu
     """
 
-    create_dir_setup(ROOT_DIR, 0.7)
+    if computer == 'DB':
+        create_dir_setup(ROOT_DIR, 0.7)
+    else:
+        check_dir_setup(ROOT_DIR, 0.7)
     dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
 
     config = TrainingConfig(len(dataset_train.image_ids))
@@ -157,4 +161,16 @@ def train_model():
     return None   
 
 if __name__ == '__main__':
-    train_model()
+    parser = argparse.ArgumentParser(
+        description='Train model'
+    )
+    parser.add_argument(
+        '--computer', 
+        required=False,
+        default='Local',
+        help='DB or Local'
+    )
+
+    args = parser.parse_args()
+
+    train_model(args.computer)
