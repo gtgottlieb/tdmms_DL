@@ -31,6 +31,8 @@ class TrainingConfig(CocoConfig):
     IMAGES_PER_GPU = 2
 
     def __init__(self, train_images: int):
+        super().__init__()
+    
         self.STEPS_PER_EPOCH = train_images / (self.GPU_COUNT * self.IMAGES_PER_GPU)
 
 def train_model():
