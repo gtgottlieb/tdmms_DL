@@ -109,32 +109,38 @@ def train_model():
     
     # Training - Stage 2
     # Finetune layers from ResNet stage 4 and up
-    # print("Fine tune Resnet stage 4 and up")
-    # model.train(dataset_train, dataset_val,
-    #             learning_rate=config.LEARNING_RATE/10,
-    #             epochs=60,
-    #             layers='4+',
-    #             augmentation=augmentation)
+    print("Fine tune Resnet stage 4 and up")
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE/10,
+        epochs=60,
+        layers='4+',
+        augmentation=augmentation
+    )
     
     # Training - Stage 3
     # Fine tune all layers
-    # print("Fine tune all layers")
-    # model.train(dataset_train, dataset_val,
-    #             learning_rate=config.LEARNING_RATE /10,
-    #             epochs=90,
-    #             layers='all',
-    #             augmentation=augmentation)
+    print("Fine tune all layers")
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE /10,
+        epochs=90,
+        layers='all',
+        augmentation=augmentation
+    )
     
-    # print("Reduce LR and further tune all layers")
-    # model.train(dataset_train, dataset_val,
-    #             learning_rate=config.LEARNING_RATE /100,
-    #             epochs=120,
-    #             layers='all',
-    #             augmentation=augmentation)
-    # 
+    print("Reduce LR and further tune all layers")
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE /100,
+        epochs=120,
+        layers='all',
+        augmentation=augmentation
+    )
 
-    # TODO: create a folder for the weights, with the weights and a 
-    # text file that contains information about the training and configurations
     model_version = 'NbSe2_weights_'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
     os.mkdir(os.path.join(ROOT_DIR, 'saved_weights', model_version))
