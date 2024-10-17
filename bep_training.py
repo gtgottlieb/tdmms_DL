@@ -47,6 +47,8 @@ def train_model(computer):
     The epoch step size is the amount of iterations per epoch:
         step size = amount of images / batch size 
         batch size = gpu count * images per gpu
+
+    MRCNN automatically saves the best weights during training.
     """
 
     if computer == 'DB':
@@ -151,12 +153,10 @@ def train_model(computer):
         augmentation=augmentation
     )
 
-    model_version = 'NbSe2_weights_'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-
-    os.mkdir(os.path.join(ROOT_DIR, 'saved_weights', model_version))
-    
-    config.write_txt(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'config.txt'))
-    model.keras_model.save(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'mask_rcnn_tdm_final.h5'))
+    # model_version = 'NbSe2_weights_'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    # os.mkdir(os.path.join(ROOT_DIR, 'saved_weights', model_version))
+    # config.write_txt(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'config.txt'))
+    # model.save_weights(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'mask_rcnn_tdm_final.h5')) # Does not work
 
     return None   
 
