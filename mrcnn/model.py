@@ -1820,7 +1820,7 @@ class MaskRCNN(object):
     The actual Keras model is in the keras_model property.
     """
 
-    def __init__(self, mode, config, model_dir):
+    def __init__(self, mode, config, model_dir, name='MaskRCNN'):
         """
         mode: Either "training" or "inference"
         config: A Sub-class of the Config class
@@ -1832,6 +1832,7 @@ class MaskRCNN(object):
         self.model_dir = model_dir
         self.set_log_dir()
         self.keras_model = self.build(mode=mode, config=config)
+        self.name=name
 
     def build(self, mode, config):
         """Build Mask R-CNN architecture.
