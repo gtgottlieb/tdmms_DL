@@ -58,12 +58,12 @@ Images are labeled and annotated by [Labelbox](https://labelbox.com/). This resu
 ## Conda GPU Setup
 This section explains how to setup a Conda environment for GPU usage.
 
-1. `conda  create  -n  <your env name> python=3.8.10  -c  conda-forge`
-2. `conda  activate  <your env name>`
-3. `conda  install  cudatoolkit=11.0  -c  conda-forge`
-4. `conda  install  cudnn=8.0  -c  conda-forge`
-5. `cd  <your root dir>/tdmms_DL`
-6. `pip  install  -r  requirements.txt`
+1. `conda create -n <your env name> python=3.8.10 -c conda-forge`
+2. `conda activate <your env name>`
+3. `conda install cudatoolkit=11.0 -c conda-forge`
+4. `conda install cudnn=8.0 -c conda-forge`
+5. `cd <your root dir>/tdmms_DL`
+6. `pip install -r requirements.txt`
 
 And you are good to go!
 
