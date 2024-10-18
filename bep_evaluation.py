@@ -29,6 +29,7 @@ from bep_utils import (
 from bep_data import bepDataset
 
 ROOT_DIR = os.path.abspath("../")
+print('Root directory:',ROOT_DIR)
 sys.path.append(ROOT_DIR)
 
 from mrcnn import model as modellib
