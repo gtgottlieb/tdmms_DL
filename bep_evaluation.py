@@ -192,7 +192,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--weights_path', 
         required=False,
-        default='nbse2_from_mos2_epochs_111_images_20.h5',
+        default='nbse2_from_mos2_images_20_epochs_111.h5',
         help='File name of the weights file'
     )
 

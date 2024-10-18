@@ -78,6 +78,7 @@ class CocoConfig(Config):
     """
     # Give the configuration a recognizable name
     NAME = "tdm"
+    CHECKPOINT_NAME = "mask_rcnn_tdm"
 
     # We use a GPU with 12GB memory, which can fit two images.
     # Adjust down if you use a smaller GPU.

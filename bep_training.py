@@ -40,14 +40,16 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
 # tf_board_log_dir = os.path.join(ROOT_DIR, "logs", "fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 # tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tf_board_log_dir, histogram_freq=1)
 
-class TrainingConfig(CocoConfig):  
+class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 2
 
-    def __init__(self, train_images: int):
+    def __init__(self, train_images: int, val_images: int, starting_material: str):
         super().__init__()
     
         self.STEPS_PER_EPOCH = train_images / (self.GPU_COUNT * self.IMAGES_PER_GPU)
+
+        self.CHECKPOINT_NAME = 'nbse2_from_{}_images_{}_epochs'.format(starting_material.lower(), train_images+val_images)
 
 def train_model(computer: str, starting_material: str = 'MoS2'):
     """
@@ -84,7 +86,11 @@ def train_model(computer: str, starting_material: str = 'MoS2'):
         check_dir_setup(ROOT_DIR, 0.7)
     dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
 
-    config = TrainingConfig(len(dataset_train.image_ids))
+    config = TrainingConfig(
+        len(dataset_train.image_ids),
+        len(dataset_val.image_ids),
+        starting_material
+    )
     config.display()
 
     model = modellib.MaskRCNN(
