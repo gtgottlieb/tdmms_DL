@@ -1,4 +1,10 @@
-"""Module to train the AI"""
+"""Module to train the AI
+
+How to run from a terminal:
+    1. activate your environment
+    2. run: py bep_training.py --computer <DB or Local>
+
+"""
 
 import os
 import sys
@@ -23,8 +29,11 @@ from mrcnn import model as modellib
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-COCO_MODEL_PATH = os.path.join(ROOT_DIR, 'weights', 'mos2_mask_rcnn_tdm_0120.h5') # Graphene COCO+2D
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
+
+if not os.path.exists(DEFAULT_LOGS_DIR):
+    os.makedirs(DEFAULT_LOGS_DIR)
+    print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
 
 # import datetime
 # import tensorflow as tf
@@ -40,7 +49,7 @@ class TrainingConfig(CocoConfig):
     
         self.STEPS_PER_EPOCH = train_images / (self.GPU_COUNT * self.IMAGES_PER_GPU)
 
-def train_model(computer):
+def train_model(computer: str, starting_material: str = 'MoS2'):
     """
     Function to train MRCNN.
 
@@ -49,6 +58,24 @@ def train_model(computer):
         batch size = gpu count * images per gpu
 
     MRCNN automatically saves the best weights during training.
+
+    Args:
+        - computer: DB or Local, if the code is running on DelftBlue or locally.
+                    Determines if the train and validation folders are reset or not.
+        - starting_material: Which weights will be used for fine-tuning on NbSe2.
+                    MoS2, BN, Graphene or WTe2
+    
+    Data directory should be setup as the following:
+    ROOT_DIR/
+        data/
+            annotations/ (.ndjson or .json)
+                train.ndjson
+                val.ndjson
+            images/
+                train/
+                val/
+        weights/
+            <material>_mask_rcnn_tdm_120.h5
     """
 
     if computer == 'DB':
@@ -66,8 +93,10 @@ def train_model(computer):
         model_dir=DEFAULT_LOGS_DIR
     )
 
-    print("Loading weights ", COCO_MODEL_PATH)
-    model.load_weights(COCO_MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"]) # Model weights for coco model
+    MODEL_PATH = os.path.join(ROOT_DIR, 'weights', starting_material.lower()+'_mask_rcnn_tdm_0120.h5')
+
+    print("Loading weights ", MODEL_PATH)
+    model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"]) # Model weights for coco model
     # model.load_weights(COCO_MODEL_PATH, by_name=True) # Model weights for a different model??
 
     augmentation = iaa.SomeOf((0, None), [
@@ -164,6 +193,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Train model'
     )
+
+    # Whether the code is running on the super computer DelftBlue or locally.
     parser.add_argument(
         '--computer', 
         required=False,
@@ -171,6 +202,13 @@ if __name__ == '__main__':
         help='DB or Local'
     )
 
+    parser.add_argument(
+        '--starting_material', 
+        required=False,
+        default='MoS2',
+        help='MoS2, WTe2, Graphene or BN'
+    )
+    
     args = parser.parse_args()
 
-    train_model(args.computer)
+    train_model(args.computer, args.starting_material)

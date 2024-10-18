@@ -1,8 +1,9 @@
 """
 Module to evaluate the AI
 
-How to run:
-$ py bep_evaluation.py <model or dataset> --material <NbSe2 or MoS2> --weights MoS2
+How to run from a terminal:
+    1. activate your environment
+    2. run: py bep_evaluation.py <model or dataset> --material <NbSe2 or MoS2> --weights MoS2
 
 """
 
@@ -10,10 +11,9 @@ import os
 import sys
 import argparse
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Set the log level of tensorflow, see bep_utils for information.
-import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Set the log level of tensorflow, see bep_utils for more information.
 
-# from bep_cocoeval import evaluate_coco
+import tensorflow as tf
 
 from tdmcoco import (
     CocoConfig, 
@@ -55,7 +55,32 @@ class EvaluationConfig(CocoConfig):
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'evaluation')
 
-def evaluate_dataset(material):
+if not os.path.exists(DEFAULT_LOGS_DIR):
+    os.makedirs(DEFAULT_LOGS_DIR)
+    print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
+
+def evaluate_dataset(material: str) -> None:
+    """
+    Function to evaluate the dataset. Returns the amount of images and class counts.
+    
+    Args:
+        - material: NbSe2 (from BEP) or Graphene, Mos2, BN, WTe2 (from TDMMS)
+
+    Data directory should be setup as the following:
+    ROOT_DIR/
+        DL_2DMaterials/
+            Dataset_DL_2DMaterials/
+                <material>/
+                    train/
+                    val/
+        data/
+            annotations/ (.ndjson or .json)
+                train.ndjson
+                val.ndjson
+            images/
+                train/
+                val/
+    """
     if material == 'NbSe2':
         dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
     else:
@@ -78,11 +103,37 @@ def evaluate_dataset(material):
     print('    Val')
     for i in dataset_val.class_names[1:]:
         print('        {}: {} images, {} part'.format(i, all_cls_val.count(i), round(all_cls_val.count(i)/len(all_cls_val),2)))
-
     
     return None
 
-def evaluate_model(material: str, weights: str):
+def evaluate_model(material: str, weights: str, weights_path: str) -> None:
+    """
+    Function to evaluate a model on a dataset. The evaluation consists of calculating the
+    precision and recall for multiple IoU thresholds.
+
+    Args:
+        - material: NbSe2 (from BEP) or Graphene, Mos2, BN, WTe2 (from TDMMS)
+        - weights: Graphene, Mos2, BN, WTe2 (from TDMMS)
+        - weights_path: specific filename af a weights file, used if weights
+                        argument is set to NbSe2
+
+    Data directory should be setup as the following:
+    ROOT_DIR/
+        DL_2DMaterials/
+            Dataset_DL_2DMaterials/
+                <material>/
+                    train/
+                    val/
+        data/
+            annotations/ (.ndjson or .json)
+                train.ndjson
+                val.ndjson
+            images/
+                train/
+                val/
+        weights/
+            <material>_mask_rcnn_tdm_120.h5
+    """
     config = EvaluationConfig()
     model = modellib.MaskRCNN(
         mode="inference",
@@ -94,6 +145,8 @@ def evaluate_model(material: str, weights: str):
 
     if weights != 'NbSe2':
         MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights.lower()+'_mask_rcnn_tdm_0120.h5')
+    else:
+        MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights_path)
 
     model.load_weights(MODEL_PATH, by_name=True)
 
@@ -113,6 +166,8 @@ def evaluate_model(material: str, weights: str):
 
     print("Running evaluation on {} images.".format(len(dataset_val.image_ids)))
     evaluate_coco(model, dataset_val, coco, "bbox")
+
+    return None
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -134,6 +189,13 @@ if __name__ == '__main__':
         default='MoS2',
         help='NbSe2 or MoS2'
     )
+    parser.add_argument(
+        '--weights_path', 
+        required=False,
+        default='nbse2_from_mos2_epochs_111_images_20.h5',
+        help='File name of the weights file'
+    )
+
     args = parser.parse_args()
 
     check_dir_setup(ROOT_DIR, 0.7)
@@ -142,4 +204,4 @@ if __name__ == '__main__':
         evaluate_dataset(args.material)
     
     if args.command == 'model':
-        evaluate_model(args.material, args.weights)
+        evaluate_model(args.material, args.weights, args.weights_path)

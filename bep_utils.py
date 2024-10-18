@@ -7,12 +7,14 @@ import shutil
 import matplotlib.pyplot as plt
 
 from bep_data import bepDataset
-from tdmcoco import CocoDataset
+from tdmcoco import CocoDataset, CocoConfig
 
 from mrcnn import visualize
 import mrcnn.model as modellib
 from mrcnn import utils
 from mrcnn.model import log
+
+from typing import Tuple, Union
 
 data_types = ['images', 'annotations']
 data_sets = ['train', 'val']
@@ -28,7 +30,22 @@ Tensorflow logging levels:
 Set by running: os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 """
 
-def load_train_val_datasets(ROOT_DIR: str):
+def load_train_val_datasets(ROOT_DIR: str) -> Tuple[bepDataset, bepDataset]:
+    """
+    Function to load train and validation datasets of the BEP data.
+    
+    Data directory should be setup as the following:
+    ROOT_DIR/
+        data/
+            annotations/ (.ndjson or .json)
+                train.ndjson
+                val.ndjson
+            images/
+                train/
+                val/
+    """
+    
+
     dataset_train = bepDataset()
     dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train', reload_annotations=True)
     dataset_train.prepare()
@@ -39,7 +56,23 @@ def load_train_val_datasets(ROOT_DIR: str):
 
     return dataset_train, dataset_val
 
-def load_train_val_datasets_tdmms(ROOT_DIR: str, material: str = 'MoS2'):
+def load_train_val_datasets_tdmms(ROOT_DIR: str, material: str = 'MoS2') -> Tuple[CocoDataset, CocoDataset]:
+    """
+    Function to load train and validation datasets of the TDMMS data.
+
+    Materials: BN, Graphene, MoS2, WTe2
+
+    Data directory should be setup as the following:
+    ROOT_DIR/
+        DL_2DMaterials/
+            Dataset_DL_2DMaterials/
+                <material>/
+                    train/
+                    val/
+
+    Args:
+        - material: material to load the data from
+    """
     dataset_train = CocoDataset()
     dataset_train.load_coco(os.path.join(ROOT_DIR, 'DL_2DMaterials', 'Dataset_DL_2DMaterials', material), 'train')
     dataset_train.prepare()
@@ -50,8 +83,13 @@ def load_train_val_datasets_tdmms(ROOT_DIR: str, material: str = 'MoS2'):
 
     return dataset_train, dataset_val
 
-def check_dir_setup(ROOT_DIR: str, train_size: float):
-    """Function to check if the directory is setup correctly.
+def check_dir_setup(ROOT_DIR: str, train_size: float) -> None:
+    """Function to check if the directory is setup correctly. This 
+    means checking for train and validation folders/files.
+
+    If there are no train and or validation folders/files then these will
+    be created from the found batch folders/files.
+
     Like:
         data/
             annotations/ (.ndjson or .json)
@@ -72,6 +110,11 @@ def check_dir_setup(ROOT_DIR: str, train_size: float):
                 .
                 train/
                 val/
+
+    Args:
+        - train_size: determines the train validation split. For
+                        example, train_size=0.7, then the validation size
+                        will be 0.3.
     """  
     for dt in data_types:
         for ds in data_sets:
@@ -87,7 +130,9 @@ def check_dir_setup(ROOT_DIR: str, train_size: float):
             
     print('Directory setup correctly')
 
-def create_dir_setup(ROOT_DIR: str, train_size: float):
+    return None
+
+def create_dir_setup(ROOT_DIR: str, train_size: float) -> None:
     """Function to reset and create train and validation directories."""
     
     print('Creating directories from batches..')
@@ -98,8 +143,10 @@ def create_dir_setup(ROOT_DIR: str, train_size: float):
     reset_dirs(ROOT_DIR)
     data_split_images(batches, ROOT_DIR, train_size)
     data_split_annotations(batches, ROOT_DIR)
+
+    return None
     
-def reset_dirs(ROOT_DIR: str):
+def reset_dirs(ROOT_DIR: str) -> None:
     """Function to reset the image and annotation directories of the
     train and validation sets."""
     # Reset image directory
@@ -126,9 +173,15 @@ def reset_dirs(ROOT_DIR: str):
                 
     return None
                         
-def data_split_images(batches: list, ROOT_DIR: str, train_size: float):
-    """Function to load the images from all found batches and split the 
-    images into a train and validation set."""
+def data_split_images(batches: list, ROOT_DIR: str, train_size: float) -> None:
+    """
+    Function to load the images from all found batches and split the 
+    images into a train and validation set.
+    
+    Args:
+        - batches: list of all the found batch folders
+        - train_size: size of the train split, also determines the val split
+    """
     imgs_batches = []
     
     for batch in batches:
@@ -160,7 +213,7 @@ def data_split_images(batches: list, ROOT_DIR: str, train_size: float):
 
     return None
 
-def data_split_annotations(batches: list, ROOT_DIR: str):
+def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
     """Function to load the annotations from all found batches and split the 
     annotations into a train and validation set.
     
@@ -186,6 +239,8 @@ def data_split_annotations(batches: list, ROOT_DIR: str):
         for row in rows:
             if row['data_row']['external_id'] in val_imgs:
                 f.write(str(row)+'\n')
+    
+    return None
 
 def get_ax(rows=1, cols=1, size=15):
     """Return a Matplotlib Axes array to be used in
@@ -198,13 +253,29 @@ def get_ax(rows=1, cols=1, size=15):
     return ax
 
 class runModel():
-    def __init__(self, model, config, dataset=None):
+    def __init__(
+            self,
+            model: modellib.MaskRCNN,
+            config: CocoConfig, 
+            dataset: Union[bepDataset, CocoDataset] = None
+        ) -> None:
+        """
+        Instantiate the class like:
+            run_model = runModel(<MRCNN object>, <CocoConfig object>)
+
+        In bep_inspect_model.ipynb the ussage is demonstrated.
+        """
         self.model = model
         self.config = config
         self.image_id = None
         self.dataset = dataset
     
-    def run(self, dataset=None, rand=False, image_idx=0):
+    def run(
+            self, 
+            dataset: Union[bepDataset, CocoDataset] = None, 
+            rand: bool = False, 
+            image_idx: int = 0
+        ) -> None:
         """
         Function to run the model on an image.
         
@@ -246,14 +317,21 @@ class runModel():
         log("gt_class_id", gt_class_id)
         log("gt_bbox", gt_bbox)
         log("gt_mask", gt_mask)
+
+        return None
     
-    def gt(self, dataset=None, rand=False, image_idx=0):
+    def gt(
+            self, 
+            dataset: Union[bepDataset, CocoDataset] = None, 
+            rand: bool = False, 
+            image_idx: int = 0
+        ) -> None:
         """Function to show the ground truth of the image, on which run() made predictions."""
         if dataset:
             self.dataset = dataset
         assert self.dataset
 
-        if not self.image_id and self.image_id != 0:
+        if not self.image_id+1:
             print('Please run .run() befor .gt().')
             raise AssertionError
 

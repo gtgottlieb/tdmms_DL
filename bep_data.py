@@ -15,25 +15,26 @@ class bepDataset(Dataset):
     
     Data should be stored in the following way:
     
-    data/
-        annotations/ (.ndjson or .json)
-            batch1.ndjson
-            batch2.ndjson
-            .
-            .
-            train.ndjson
-            val.ndjson
-        images/
-            batch1/
-                [image_1_name].png
-                [image_2_name].png
+    ROOT_DIR/
+        data/
+            annotations/ (.ndjson or .json)
+                batch1.ndjson
+                batch2.ndjson
                 .
                 .
-            batch2/
-            .
-            .
-            train/
-            val/
+                train.ndjson
+                val.ndjson
+            images/
+                batch1/
+                    [image_1_name].png
+                    [image_2_name].png
+                    .
+                    .
+                batch2/
+                .
+                .
+                train/
+                val/
             
     Use the check_dir_setup() function from bep_utils.py to
     check if the directory is setup correctly and create a 
@@ -52,17 +53,16 @@ class bepDataset(Dataset):
         self.annotation_id = 1
         self.image_id = 1        
             
-    def convert_annotations_to_coco(self, annotations_file: str, img_dir: str):
+    def convert_annotations_to_coco(self, annotations_file: str, img_dir: str) -> None:
         """
         Function to convert the Labelbox.com .ndjson annotation output 
-        to the classic COCO annotation format.
+        to the classic COCO annotation format in .json. The .json file
+        will be created next to the .ndjson file.
         
         Args:
             - annotations_file: str, path to .ndjson annotation file, WITHOUT file extension
                 example: '../../test_annotations'
             - img_dir: str, path to image directory
-        Returns:
-            - COCO format dictionary
         """
         with open(annotations_file+'.ndjson') as f:
             rows = [json.loads(l.replace('\'', '\"')) for l in f.readlines()]
@@ -129,10 +129,18 @@ class bepDataset(Dataset):
         self,
         path: str, 
         data: str,
-        reload_annotations: bool=False,
-        return_coco=False
+        reload_annotations: bool = False,
+        return_coco = False
     ):
-        """"Function to load image directory"""
+        """"
+        Function to load image directory
+        
+        Args:
+            - path: path to where the images/ and annotations/ folders are located
+            - data: data type, such as: 'train', 'val', 'bacth1', 'batch2', etc. 
+            - reload_annotations: determines if the .json files will be reset
+            - return_coco: determines if the COCO object will be returned or not
+        """
         data_dir = os.path.join(path, 'images', data)
         annotations_file = os.path.join(path, 'annotations', data)
         
@@ -168,7 +176,10 @@ class bepDataset(Dataset):
         """Function to load multiple directories, such as multiple batches.
         All directories are accessed by using the given path.
         
-        'dirs' example: ['batch1', 'batch2', 'batch3']
+        Args:
+            - path: path to where the images/ and annotations/ folders are located
+            - dirs: list of directories to load, for example, ['batch1', 'batch2', 'batch3']
+            - reload_annotations: determines if the .json files will be reset
         """
         
         for dir in dirs:
@@ -267,7 +278,7 @@ class bepDataset(Dataset):
     
     @staticmethod
     def generate_segmentation(polygon: list):
-        """Function to generate a segmentation list from a polygon object."""
+        """Function to generate a segmentation list in COCO format from a polygon object."""
         segmentation = []
         for point in polygon:
             segmentation += [point['x'], point['y']]
@@ -277,7 +288,10 @@ class bepDataset(Dataset):
     @staticmethod
     def get_image_info(img_dir: str):
         """Function to get all image files from directory and image
-        width and height."""
+        width and height, assuming all the width and heights are the same.
+        
+        TODO: Get width and height for each image, but is maybe too slow and not worth it.
+        """
         
         imgs = [i for i in os.listdir(img_dir) if os.path.isfile(os.path.join(img_dir, i))]
         
