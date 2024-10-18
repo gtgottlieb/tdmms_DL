@@ -253,7 +253,7 @@ class runModel():
             self.dataset = dataset
         assert self.dataset
 
-        if not self.image_id:
+        if not self.image_id and self.image_id != 0:
             print('Please run .run() befor .gt().')
             raise AssertionError
 
@@ -293,5 +293,5 @@ class runModel():
                 
 if __name__ == '__main__':
     ROOT_DIR = os.path.abspath("../")
-    check_dir_setup(ROOT_DIR, 0.7)
-    # create_dir_setup(ROOT_DIR, 0.7)
+    # check_dir_setup(ROOT_DIR, 0.7)
+    create_dir_setup(ROOT_DIR, 0.7)
