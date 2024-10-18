@@ -3,8 +3,12 @@ Module to evaluate the AI
 
 How to run from a terminal:
     1. activate your environment
-    2. run: py bep_evaluation.py <model or dataset> --material <NbSe2 or MoS2> --weights MoS2
-
+    2. run: $ py bep_evaluation.py <model or dataset>
+        with optional arguments:    
+            --material <NbSe2, Graphene, Mos2, BN, or WTe2> 
+            --weights <MoS2 or NbSe2>
+            --weights_path
+            --dataset <val or test>
 """
 
 import os
@@ -189,7 +193,7 @@ if __name__ == '__main__':
         '--weights', 
         required=False,
         default='MoS2',
-        help='NbSe2 or MoS2'
+        help='NbSe2, Graphene, Mos2, BN, or WTe2'
     )
     parser.add_argument(
         '--weights_path', 

@@ -1,19 +1,71 @@
+
 # Mask R-CNN for 2D Materials Detection Fine-tuned on NbSe2
 
-**This is a fork repository that is focussed on fine-tuning the original model on a custom dataset of NbSe2 flakes.**
+This repository contains the model, training, and evaluation code for 2D materials detection using Mask R-CNN. The goal of this project is to fine-tune the model of [Masubuchi *et al.*](https://www.nature.com/articles/s41699-020-0137-z), which was created for graphene, MoS2, hBN and WTe2, on NbSe2. This repository is built on the repository of [Masubuchi *et al.*](https://github.com/tdmms/tdmms_DL).
 
-This repository provides information for utilizing Deep-learning based image segmentation algorithms for detecting atomically thin two-dimensional materials in the optical microscopy images. The related publications are: 
 
-* "Autonomous robotic searching and assembly of two-dimensional crystals to build van der Waals superlattices," Satoru Masubuchi *et al.*, Nature Communications **9**, Article number: 1413 (2018). https://www.nature.com/articles/s41467-018-03723-w
+>This is the original publication:
+"Deep-Learning-Based Image Segmentation Integrated with Optical Microscopy for Automatically Searching for Two-Dimensional Materials," Satoru Masubuchi *et al.*, npj 2D Materials and Applications **4**, 3 (2020). https://www.nature.com/articles/s41699-020-0137-z
 
-* "Deep-Learning-Based Image Segmentation Integrated with Optical Microscopy for Automatically Searching for Two-Dimensional Materials," Satoru Masubuchi *et al.*, npj 2D Materials and Applications **4**, 3 (2020). https://www.nature.com/articles/s41699-020-0137-z
+The orignal datasets and model weights can be found at: https://doi.org/10.6084/m9.figshare.11881053.
 
-We also provide the training datasets, and trained model weights at https://doi.org/10.6084/m9.figshare.11881053.
+This model uses `tensorflow-gpu 2.4.0`  and `python 3.8.10`. For GPU compatibility see this [link](https://www.tensorflow.org/install/source#gpu).
 
-If this work helped your research, it would be greatly appreciated if you could cite the papers in your publications.
+## Setup
+Activate your environment and run `pip install -r requirements.txt`. For Conda and GPU usage please scroll down.
 
-The codes are based on the implementation of Mask R-CNN by (https://github.com/matterport/Mask_RCNN) and tfserve by (https://github.com/iitzco/tfserve) on Python 3, Keras, and TensorFlow. The model generates bounding boxes and segmentation masks for each instance of an object in the image. 
+The directory should be setup as follows:
 
-## Remarks
-I hope to continue developing 2DMMS to become a truly helpful tool for the research community of van der Waals heterostructures. Please feel free to email me with your feedback or any issues at: msatoru@iis.u-tokyo.ac.jp
+ - Root directory/
+	 - data/ *contains data for this project*
+		 - annotations/
+			 - train.ndjson
+			 - val.ndjson
+			 - test.ndjson
+			 - batch1.ndjson
+			 - batch2.ndjson
+			 - batchN.ndjson
+		 - images/
+			 - train/
+			 - val/
+			 - test/
+			 - batch1/
+			 - batch2/
+			 - batchN/
+	 - DL_2DMaterials/ *original tdmms dataset*
+	 - logs/
+	 - tddms_DL/ *this repository*
+	 - weights/ *contains all model weights, also from tdmms*
 
+**Only the *batch* folders and files are necessary.** The train, validation and test directories will be created automatically if the batch folders and files are present.
+
+## Usage
+To train the model run `python bep_training.py`, with optional arguments:
+ - `--reload_data_dir <True or False>`
+ - `--starting_material <MoS2, WTe2, Graphene or BN>`
+
+To evaluate the model or a dataset run `python bep_evaluation.py <model or dataset>`, with optional arguments:
+- `--material <NbSe2, Graphene, Mos2, BN, or WTe2>` Default: `NbSe2`
+- `--weights <MoS2 or NbSe2>` Default: `MoS2`
+- `--weights_path` Default: `nbse2_from_mos2_images_20_epochs_111.h5`, only used if `--weights` set to `NbSe2`
+- `--dataset <val or test>` Default: `val`, only used if `--weights` set to `NbSe2`
+
+For manual interactive inspection the `bep_inspect_model.ipynb` notebook can be used.
+
+## Annotations
+Images are labeled and annotated by [Labelbox](https://labelbox.com/). This results in `.ndjson` annotation files. These are converted to COCO format `.json` files.
+
+## Conda GPU Setup
+This section explains how to setup a Conda environment for GPU usage.
+
+1. `conda  create  -n  <your env name> python=3.8.10  -c  conda-forge`
+2. `conda  activate  <your env name>`
+3. `conda  install  cudatoolkit=11.0  -c  conda-forge`
+4. `conda  install  cudnn=8.0  -c  conda-forge`
+5. `cd  <your root dir>/tdmms_DL`
+6. `pip  install  -r  requirements.txt`
+
+And you are good to go!
+
+## Contact
+If you have any questions please send a mail to abelloekdelange@gmail.com.

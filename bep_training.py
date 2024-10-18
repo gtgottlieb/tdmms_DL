@@ -2,10 +2,10 @@
 
 How to run from a terminal:
     1. activate your environment
-    2. run: $ py bep_training.py --reload_data_dir <True or False> --starting_material <MoS2, WTe2, Graphene or BN>
-        or just $ py bep_training.py
-        this will use --reload_data_dir False --starting_material MoS2
-
+    2. run: $ py bep_training.py 
+        with optional arguments:   
+            --reload_data_dir <True or False> 
+            --starting_material <MoS2, WTe2, Graphene or BN>
 """
 
 import os

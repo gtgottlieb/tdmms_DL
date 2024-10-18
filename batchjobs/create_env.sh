@@ -18,15 +18,15 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 
 conda env remove -n env_tf24
 
-conda create -n env_tf24 python=3.7.8 -c conda-forge
+conda create -n env_tf24 python=3.8.10 -c conda-forge
 
 conda activate env_tf24
 
 conda install cudatoolkit=11.0 -c conda-forge
 conda install cudnn=8.0 -c conda-forge
 
-cd /home/aldelange/ai/tdmms_DL_tf24/tdmms_DL
+cd /home/aldelange/ai/tdmms_DL
 
-pip install -r requirements_min_conda.txt
+pip install -r requirements.txt
 
 conda deactivate
