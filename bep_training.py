@@ -2,7 +2,9 @@
 
 How to run from a terminal:
     1. activate your environment
-    2. run: py bep_training.py --computer <DB or Local>
+    2. run: $ py bep_training.py --reload_data_dir <True or False> --starting_material <MoS2, WTe2, Graphene or BN>
+        or just $ py bep_training.py
+        this will use --reload_data_dir False --starting_material MoS2
 
 """
 
@@ -52,7 +54,7 @@ class TrainingConfig(CocoConfig):
 
         self.CHECKPOINT_NAME = 'nbse2_from_{}_images_{}_epochs'.format(starting_material.lower(), train_images+val_images)
 
-def train_model(computer: str, starting_material: str = 'MoS2'):
+def train_model(reload_data_dir: bool, starting_material: str = 'MoS2'):
     """
     Function to train MRCNN.
 
@@ -63,8 +65,7 @@ def train_model(computer: str, starting_material: str = 'MoS2'):
     MRCNN automatically saves the best weights during training.
 
     Args:
-        - computer: DB or Local, if the code is running on DelftBlue or locally.
-                    Determines if the train and validation folders are reset or not.
+        - computer: if the data directories should be reloaded
         - starting_material: Which weights will be used for fine-tuning on NbSe2.
                     MoS2, BN, Graphene or WTe2
     
@@ -74,18 +75,20 @@ def train_model(computer: str, starting_material: str = 'MoS2'):
             annotations/ (.ndjson or .json)
                 train.ndjson
                 val.ndjson
+                test.ndjson
             images/
                 train/
                 val/
+                test/
         weights/
             <material>_mask_rcnn_tdm_120.h5
     """
 
-    if computer == 'DB':
-        create_dir_setup(ROOT_DIR, 0.7)
+    if reload_data_dir:
+        create_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
     else:
-        check_dir_setup(ROOT_DIR, 0.7)
-    dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
+        check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
+    dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),
@@ -203,10 +206,10 @@ if __name__ == '__main__':
 
     # Whether the code is running on the super computer DelftBlue or locally.
     parser.add_argument(
-        '--computer', 
+        '--reload_data_dir', 
         required=False,
-        default='Local',
-        help='DB or Local'
+        default=False,
+        help='False or True'
     )
 
     parser.add_argument(
@@ -218,4 +221,4 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    train_model(args.computer, args.starting_material)
+    train_model(args.reload_data_dir, args.starting_material)

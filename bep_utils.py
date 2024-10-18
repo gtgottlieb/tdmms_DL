@@ -6,7 +6,7 @@ import random
 import shutil
 import matplotlib.pyplot as plt
 
-from bep_data import bepDataset
+from bep_data_class import bepDataset
 from tdmcoco import CocoDataset, CocoConfig
 
 from mrcnn import visualize
@@ -17,7 +17,7 @@ from mrcnn.model import log
 from typing import Tuple, Union
 
 data_types = ['images', 'annotations']
-data_sets = ['train', 'val']
+data_sets = ['train', 'val', 'test']
 
 """"
 Tensorflow logging levels:
@@ -40,9 +40,11 @@ def load_train_val_datasets(ROOT_DIR: str) -> Tuple[bepDataset, bepDataset]:
             annotations/ (.ndjson or .json)
                 train.ndjson
                 val.ndjson
+                test.ndjson
             images/
                 train/
                 val/
+                test/
     """
     
 
@@ -54,7 +56,11 @@ def load_train_val_datasets(ROOT_DIR: str) -> Tuple[bepDataset, bepDataset]:
     dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', reload_annotations=True)
     dataset_val.prepare()
 
-    return dataset_train, dataset_val
+    dataset_test = bepDataset()
+    dataset_test.load_dir(os.path.join(ROOT_DIR, 'data'), 'test', reload_annotations=True)
+    dataset_test.prepare()
+
+    return dataset_train, dataset_val, dataset_test
 
 def load_train_val_datasets_tdmms(ROOT_DIR: str, material: str = 'MoS2') -> Tuple[CocoDataset, CocoDataset]:
     """
@@ -83,7 +89,7 @@ def load_train_val_datasets_tdmms(ROOT_DIR: str, material: str = 'MoS2') -> Tupl
 
     return dataset_train, dataset_val
 
-def check_dir_setup(ROOT_DIR: str, train_size: float) -> None:
+def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float]) -> None:
     """Function to check if the directory is setup correctly. This 
     means checking for train and validation folders/files.
 
@@ -99,6 +105,7 @@ def check_dir_setup(ROOT_DIR: str, train_size: float) -> None:
                 .
                 train.ndjson
                 val.ndjson
+                test.ndjson
             images/
                 batch1/
                     [image_1_name].png
@@ -110,11 +117,12 @@ def check_dir_setup(ROOT_DIR: str, train_size: float) -> None:
                 .
                 train/
                 val/
+                test/
 
     Args:
-        - train_size: determines the train validation split. For
-                        example, train_size=0.7, then the validation size
-                        will be 0.3.
+        - data_split: determines the train validation test split
+                    (train size, validation size, test size)
+                    For example: (0.8, 0.1, 0.1)
     """  
     for dt in data_types:
         for ds in data_sets:
@@ -125,14 +133,14 @@ def check_dir_setup(ROOT_DIR: str, train_size: float) -> None:
             path = os.path.join(ROOT_DIR, 'data', dt, ds+extension)
             if not os.path.exists(path):
                 print(f'{path} did not exist')
-                create_dir_setup(ROOT_DIR, train_size)
+                create_dir_setup(ROOT_DIR, data_split)
                 return None
             
     print('Directory setup correctly')
 
     return None
 
-def create_dir_setup(ROOT_DIR: str, train_size: float) -> None:
+def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float]) -> None:
     """Function to reset and create train and validation directories."""
     
     print('Creating directories from batches..')
@@ -141,7 +149,7 @@ def create_dir_setup(ROOT_DIR: str, train_size: float) -> None:
     print('Found batches:',', '.join(batches))
     
     reset_dirs(ROOT_DIR)
-    data_split_images(batches, ROOT_DIR, train_size)
+    data_split_images(batches, ROOT_DIR, data_split)
     data_split_annotations(batches, ROOT_DIR)
 
     return None
@@ -173,7 +181,7 @@ def reset_dirs(ROOT_DIR: str) -> None:
                 
     return None
                         
-def data_split_images(batches: list, ROOT_DIR: str, train_size: float) -> None:
+def data_split_images(batches: list, ROOT_DIR: str, data_split: Tuple[float, float, float]) -> None:
     """
     Function to load the images from all found batches and split the 
     images into a train and validation set.
@@ -194,28 +202,45 @@ def data_split_images(batches: list, ROOT_DIR: str, train_size: float) -> None:
     img_count = len(imgs_batches)    
     print(f'Total image count: {img_count}')
     
-    train_amount = round(train_size*img_count)
+    train_amount = round(data_split[0]*img_count)
+    val_amount = round(data_split[1]*img_count)
+    test_amount = img_count - train_amount - val_amount
     
     print('Copying images..')
+    # i = (batch_name, image_name)
     for i in imgs_batches[:train_amount]:
-        # i = (batch_name, image_name)
         shutil.copy(
             os.path.join(ROOT_DIR, 'data', 'images', i[0], i[1]),
             os.path.join(ROOT_DIR, 'data', 'images', 'train')
         )
     
-    for i in imgs_batches[train_amount:]:
-        # i = (batch_name, image_name)
+    for i in imgs_batches[train_amount:val_amount+train_amount]:
         shutil.copy(
             os.path.join(ROOT_DIR, 'data', 'images', i[0], i[1]),
             os.path.join(ROOT_DIR, 'data', 'images', 'val')
         )
 
+    for i in imgs_batches[val_amount+train_amount:]:
+        shutil.copy(
+            os.path.join(ROOT_DIR, 'data', 'images', i[0], i[1]),
+            os.path.join(ROOT_DIR, 'data', 'images', 'test')
+        )
+
+    print('Checking image counts..')
+    check_count_list = [(train_amount, 'train'), (val_amount, 'val'), (test_amount, 'test')]
+    for i,j in check_count_list:
+        folder_img_count = len([i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images', j))])
+        if i != folder_img_count:
+            print('Calculated amount of {} images, {}, is not equal to the acutal amount of images, {}, in the destinated folder'.format(j, i, folder_img_count))
+            raise ValueError
+
     return None
 
 def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
     """Function to load the annotations from all found batches and split the 
-    annotations into a train and validation set.
+    annotations into a train and validation set. Uses the already created 
+    train/ val/ and test/ folders in images/ to know which annotations belongs
+    where.
     
     TODO: 'f.write(str(row)+'\n')' writes the .ndjson lines as a string, containing
     ' instead of ", and ' is no .json. It work with a .replace when reading the files.
@@ -228,8 +253,9 @@ def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
     
     train_imgs = os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'train'))
     val_imgs = os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'val'))
+    test_imgs = os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'test'))
     
-    print('Writing annotation files..')
+    print('Creating and writing annotation files..')
     with open(os.path.join(ROOT_DIR, 'data', 'annotations', 'train.ndjson'), "w+") as f:
         for row in rows:
             if row['data_row']['external_id'] in train_imgs:
@@ -240,6 +266,11 @@ def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
             if row['data_row']['external_id'] in val_imgs:
                 f.write(str(row)+'\n')
     
+    with open(os.path.join(ROOT_DIR, 'data', 'annotations', 'test.ndjson'), "w+") as f:
+        for row in rows:
+            if row['data_row']['external_id'] in test_imgs:
+                f.write(str(row)+'\n')
+
     return None
 
 def get_ax(rows=1, cols=1, size=15):
@@ -371,5 +402,5 @@ class runModel():
                 
 if __name__ == '__main__':
     ROOT_DIR = os.path.abspath("../")
-    # check_dir_setup(ROOT_DIR, 0.7)
-    create_dir_setup(ROOT_DIR, 0.7)
+    check_dir_setup(ROOT_DIR, 0.7)
+    # create_dir_setup(ROOT_DIR, 0.7)

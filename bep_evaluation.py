@@ -26,7 +26,7 @@ from bep_utils import (
     check_dir_setup,
     create_dir_setup,
 )
-from bep_data import bepDataset
+from bep_data_class import bepDataset
 
 ROOT_DIR = os.path.abspath("../")
 print('Root directory:',ROOT_DIR)
@@ -74,6 +74,7 @@ def evaluate_dataset(material: str) -> None:
                 <material>/
                     train/
                     val/
+                    test/
         data/
             annotations/ (.ndjson or .json)
                 train.ndjson
@@ -81,42 +82,40 @@ def evaluate_dataset(material: str) -> None:
             images/
                 train/
                 val/
+                test/
     """
     if material == 'NbSe2':
-        dataset_train, dataset_val = load_train_val_datasets(ROOT_DIR)
+        dataset_train, dataset_val, dataset_test = load_train_val_datasets(ROOT_DIR)
     else:
         dataset_train, dataset_val = load_train_val_datasets_tdmms(ROOT_DIR, material)
+        dataset_test = None
 
-    all_cls_train = [[category_mapping[j['category_id']]+material for j in i['annotations']] for i in dataset_train.image_info]
-    all_cls_train = [i for j in all_cls_train for i in j]
-    all_cls_val = [[category_mapping[j['category_id']]+material for j in i['annotations']] for i in dataset_val.image_info]
-    all_cls_val = [i for j in all_cls_val for i in j]
+    datasets = [('Train', dataset_train), ('Val', dataset_val), ('Test', dataset_test)]
 
     print('')
-    print('Image count')
-    print('    Train: {} images, {} part'.format(len(dataset_train.image_ids), round(len(dataset_train.image_ids)/(len(dataset_train.image_ids)+len(dataset_val.image_ids)),2)))
-    print('    Val: {} images, {} part'.format(len(dataset_val.image_ids), round(len(dataset_val.image_ids)/(len(dataset_train.image_ids)+len(dataset_val.image_ids)),2)))
-    print('')
-    print('Class count')
-    print('    Train')
-    for i in dataset_train.class_names[1:]:
-        print('        {}: {} images, {} part'.format(i, all_cls_train.count(i), round(all_cls_train.count(i)/len(all_cls_train),2)))
-    print('    Val')
-    for i in dataset_val.class_names[1:]:
-        print('        {}: {} images, {} part'.format(i, all_cls_val.count(i), round(all_cls_val.count(i)/len(all_cls_val),2)))
+    for dataset in datasets:
+        if dataset[1]:
+            all_cls = [[category_mapping[j['category_id']]+material for j in i['annotations']] for i in dataset[1].image_info]
+            all_cls = [i for j in all_cls for i in j]
+            print('{}: {} images'.format(dataset[0], len(dataset_train.image_ids)))
+            print('Class counts:')
+            for cls in dataset[1].class_names[1:]:
+                print('        {}: {} images, part {}'.format(cls, all_cls.count(cls), round(all_cls.count(cls)/len(all_cls),2)))
     
     return None
 
-def evaluate_model(material: str, weights: str, weights_path: str) -> None:
+def evaluate_model(material: str, weights: str, weights_path: str, dataset_type: str = 'val') -> None:
     """
     Function to evaluate a model on a dataset. The evaluation consists of calculating the
     precision and recall for multiple IoU thresholds.
 
     Args:
-        - material: NbSe2 (from BEP) or Graphene, Mos2, BN, WTe2 (from TDMMS)
-        - weights: Graphene, Mos2, BN, WTe2 (from TDMMS)
+        - material: NbSe2 (from BEP) or Graphene, Mos2, BN, WTe2 (from TDMMS).
+        - weights: Graphene, Mos2, BN, WTe2 (from TDMMS).
         - weights_path: specific filename af a weights file, used if weights
-                        argument is set to NbSe2
+                        argument is set to NbSe2.
+        - dataset: to use the validation or test data. Only applicable for the
+                        NbSe2 data, not the TDMMS data
 
     Data directory should be setup as the following:
     ROOT_DIR/
@@ -129,9 +128,11 @@ def evaluate_model(material: str, weights: str, weights_path: str) -> None:
             annotations/ (.ndjson or .json)
                 train.ndjson
                 val.ndjson
+                test.ndjson
             images/
                 train/
                 val/
+                test/
         weights/
             <material>_mask_rcnn_tdm_120.h5
     """
@@ -152,21 +153,21 @@ def evaluate_model(material: str, weights: str, weights_path: str) -> None:
     model.load_weights(MODEL_PATH, by_name=True)
 
     if material == 'NbSe2':
-        dataset_val = bepDataset()
-        coco = dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', reload_annotations=True, return_coco=True)
-        dataset_val.prepare()
+        dataset = bepDataset()
+        coco = dataset.load_dir(os.path.join(ROOT_DIR, 'data'), dataset_type, reload_annotations=True, return_coco=True)
+        dataset.prepare()
     else:
-        dataset_val = CocoDataset()
+        dataset = CocoDataset()
         val_type = "val" 
-        coco = dataset_val.load_coco(
+        coco = dataset.load_coco(
             os.path.join(ROOT_DIR, 'DL_2DMaterials', 'Dataset_DL_2DMaterials', material),
             val_type,
             return_coco=True
         )
-        dataset_val.prepare()
+        dataset.prepare()
 
-    print("Running evaluation on {} images.".format(len(dataset_val.image_ids)))
-    evaluate_coco(model, dataset_val, coco, "bbox")
+    print("Running evaluation on {} images.".format(len(dataset.image_ids)))
+    evaluate_coco(model, dataset, coco, "bbox")
 
     return None
 
@@ -196,10 +197,16 @@ if __name__ == '__main__':
         default='nbse2_from_mos2_images_20_epochs_111.h5',
         help='File name of the weights file'
     )
+    parser.add_argument(
+        '--dataset', 
+        required=False,
+        default='val',
+        help='val or test, only for NbSe2 '
+    )
 
     args = parser.parse_args()
 
-    check_dir_setup(ROOT_DIR, 0.7)
+    check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
 
     if args.command == 'dataset':
         evaluate_dataset(args.material)
