@@ -345,9 +345,9 @@ class runModel():
             ['','Mono', 'Few','Thick'], r['scores'],
             ax=ax,
             title=title)
-        log("gt_class_id", gt_class_id)
-        log("gt_bbox", gt_bbox)
-        log("gt_mask", gt_mask)
+        # log("gt_class_id", gt_class_id)
+        # log("gt_bbox", gt_bbox)
+        # log("gt_mask", gt_mask)
 
         return None
     
@@ -380,14 +380,14 @@ class runModel():
         bbox = utils.extract_bboxes(mask)
 
         # Display image and additional stats
-        print("image_id: ", self.image_id, self.dataset.image_reference(self.image_id))
-        print("Original shape: ", original_shape)
-        log("image", image)
-        log("mask", mask)
-        log("class_ids", class_ids)
-        print(class_ids)
-        log("bbox", bbox)
-        # Display image and instances
+        # print("image_id: ", self.image_id, self.dataset.image_reference(self.image_id))
+        # print("Original shape: ", original_shape)
+        # log("image", image)
+        # log("mask", mask)
+        # log("class_ids", class_ids)
+        # print(class_ids)
+        # log("bbox", bbox)
+        # # Display image and instances
         ax = get_ax(1)
         title = 'Ground Truth'
         visualize.display_instances(

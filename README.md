@@ -52,6 +52,8 @@ To evaluate the model or a dataset run `python bep_evaluation.py <model or datas
 
 For manual interactive inspection the `bep_inspect_model.ipynb` notebook can be used.
 
+During training weight checkpoints are saved to the `logs/training/` directory. To use these weights, copy them to the `weights/` directory.
+
 ## Annotations
 Images are labeled and annotated by [Labelbox](https://labelbox.com/). This results in `.ndjson` annotation files. These are converted to COCO format `.json` files.
 
