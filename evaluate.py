@@ -3,7 +3,7 @@ Module to evaluate the AI
 
 How to run from a terminal:
     1. activate your environment
-    2. run: $ py bep_evaluation.py <model or dataset>
+    2. run: $ py evaluate.py <model or dataset>
         with optional arguments:    
             --material <NbSe2, Graphene, Mos2, BN, or WTe2> 
             --weights <MoS2 or NbSe2>

@@ -1,3 +1,6 @@
 __pycache__/
 mrcnn/__pycache__/
 .vscode/
+bep/__pycache__/
+model_assisted_labeling/__pycache__/
+tdmms/__pycache__/

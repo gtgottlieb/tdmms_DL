@@ -2,7 +2,7 @@
 
 How to run from a terminal:
     1. activate your environment
-    2. run: $ py bep_training.py 
+    2. run: $ py train.py 
         with optional arguments:   
             --reload_data_dir <True or False> 
             --starting_material <MoS2, WTe2, Graphene or BN>

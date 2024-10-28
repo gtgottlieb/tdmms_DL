@@ -40,11 +40,11 @@ The directory should be setup as follows:
 **Only the *batch* folders and files are necessary.** The train, validation and test directories will be created automatically if the batch folders and files are present.
 
 ## Usage
-To train the model run `python bep_training.py`, with optional arguments:
+To train the model run `python train.py`, with optional arguments:
  - `--reload_data_dir <True or False>`
  - `--starting_material <MoS2, WTe2, Graphene or BN>`
 
-To evaluate the model or a dataset run `python bep_evaluation.py <model or dataset>`, with optional arguments:
+To evaluate the model or a dataset run `python evaluate.py <model or dataset>`, with optional arguments:
 - `--material <NbSe2, Graphene, Mos2, BN, or WTe2>` Default: `NbSe2`
 - `--weights <MoS2 or NbSe2>` Default: `MoS2`
 - `--weights_path` Default: `nbse2_from_mos2_images_20_epochs_111.h5`, only used if `--weights` set to `NbSe2`

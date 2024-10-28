@@ -311,4 +311,4 @@ class bepDataset(Dataset):
         return s
     
 if __name__ == '__main__':
-    ROOT_DIR = os.path.abspath("../")
+    ROOT_DIR = os.path.abspath("../../")
