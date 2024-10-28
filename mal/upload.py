@@ -6,7 +6,7 @@ import uuid
 
 import labelbox as lb
 
-ROOT_DIR = os.path.abspath("../../")
+ROOT_DIR = os.path.abspath("../../../")
 print('Root directory:',ROOT_DIR)
 sys.path.append(ROOT_DIR)
 
