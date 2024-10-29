@@ -1,4 +1,4 @@
-"""Module with used function for Labelbox.com"""
+"""Module with used functions for Labelbox.com."""
 import os
 import numpy as np
 import skimage
@@ -100,6 +100,18 @@ def extract_annotations(
     return annotations
 
 def create_annotations_folder(data: str, ROOT_DIR: str, overwrite: bool=False) -> None:
+    """
+    Function to create a folder to store the .json annotation files in.
+    The folder is created at:
+        ROOT_DIR/mal/
+    
+    Args:
+        - data: what to nme the folder.
+        - ROOT_DIR: root directory of the project.
+        - overwrite: True or False, if an error should be raised or not if the folder
+                    already exists. False stops possible overwriting.
+    
+    """
     annotations_folder = os.path.join(ROOT_DIR, 'mal', data)
 
     if not os.path.exists(annotations_folder):
@@ -114,13 +126,21 @@ def create_annotations_folder(data: str, ROOT_DIR: str, overwrite: bool=False) -
     return None
 
 def store_annotations(external_id: str, annotations: list, data: str, ROOT_DIR: str) -> None:
+    """
+    Function to store an annotations list.
+    The .json file is stored at:
+        ROOT_DIR/mal/<data>/
+
+    Args:
+        - external_id: the image filename, used as filename for the .json file.
+        - annotations: list with the annotations of the image.
+        - data: name of the folder in which the .json file is stored.
+        - ROOT_DIR: root directory of the project.
+    """
     annotations_folder = os.path.join(ROOT_DIR, 'mal', data)
     file_name = external_id.split('.')[0] + '.json'
 
     with open(os.path.join(annotations_folder, file_name), 'w+') as f:
         json.dump(annotations, f)
-
-    # with open('some_file.json') as fin:
-    #     some_strings = json.load(fin)
 
     return None

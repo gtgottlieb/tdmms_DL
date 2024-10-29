@@ -1,4 +1,5 @@
-"""Module to train the AI
+"""
+Module to train the AI
 
 How to run from a terminal:
     1. activate your environment
