@@ -53,15 +53,14 @@ class malDataset(utils.Dataset):
         self.data = data
 
         data_dir = os.path.join(path, 'images', data)
-    
         images = os.listdir(data_dir)
-        
-                
+                        
         for i in images:
             self.add_image(
                 "ali",
                 image_id=self.image_id,
                 path=os.path.join(data_dir, i),
+                external_id=i
             )
             self.image_id += 1
             

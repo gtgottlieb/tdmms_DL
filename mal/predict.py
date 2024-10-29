@@ -3,17 +3,17 @@
 import os
 import sys
 
-
-ROOT_DIR = os.path.abspath("../../")
+ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
 print('Root directory:',ROOT_DIR)
-
 sys.path.append(ROOT_DIR)
 sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
 
 from utils import (
     load_image,
     resize_image,
-    extract_annotations
+    extract_annotations,
+    create_annotations_folder,
+    store_annotations,
 )
 from dataset import malDataset
 from tdmms.tdmcoco import CocoConfig
@@ -50,24 +50,25 @@ def predict(data: str, weights: str=None):
     dataset = malDataset(malConfig)
     dataset.load_dir(os.path.join(ROOT_DIR, 'data'), data)
 
-    batch_annotations = {}
+    create_annotations_folder(data, ROOT_DIR, overwrite=True)
 
     for image_info in dataset.image_info:
+        external_id = image_info['path'].split('\\')[-1]
         image = load_image(image_info['path'])
-        image = resize_image(image, config)
+        # image = resize_image(image, config)
 
         results = model.detect([image])
         results = results[0]
 
-        batch_annotations[image_info['id']] = extract_annotations(
+        annotations = extract_annotations(
             results['rois'],
             results['masks'],
             results['class_ids'],
             ['','Mono', 'Few','Thick'],
             results['scores']
         )
-    
-    print(batch_annotations)
 
+        store_annotations(external_id, annotations, data, ROOT_DIR)
+    
 if __name__ == '__main__':
     predict('batch4')

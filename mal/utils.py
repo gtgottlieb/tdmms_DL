@@ -1,7 +1,8 @@
 """Module with used function for Labelbox.com"""
-
+import os
 import numpy as np
 import skimage
+import json
 
 from skimage.measure import find_contours
 from matplotlib import patches
@@ -97,3 +98,29 @@ def extract_annotations(
         annotations.append(instance)
     
     return annotations
+
+def create_annotations_folder(data: str, ROOT_DIR: str, overwrite: bool=False) -> None:
+    annotations_folder = os.path.join(ROOT_DIR, 'mal', data)
+
+    if not os.path.exists(annotations_folder):
+        os.makedirs(annotations_folder)
+        print(f"Folder '{annotations_folder}' created.")
+    elif not overwrite:
+        print(f"Folder: '{annotations_folder}' already exists, set 'overwrite' to True if you want to overwrite the stored annotations.")
+        raise AssertionError
+    else:
+        print(f"Folder: '{annotations_folder}' already exists, overwriting..")
+
+    return None
+
+def store_annotations(external_id: str, annotations: list, data: str, ROOT_DIR: str) -> None:
+    annotations_folder = os.path.join(ROOT_DIR, 'mal', data)
+    file_name = external_id.split('.')[0] + '.json'
+
+    with open(os.path.join(annotations_folder, file_name), 'w+') as f:
+        json.dump(annotations, f)
+
+    # with open('some_file.json') as fin:
+    #     some_strings = json.load(fin)
+
+    return None
