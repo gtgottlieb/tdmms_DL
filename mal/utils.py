@@ -1,9 +1,37 @@
 """Module with used function for Labelbox.com"""
 
 import numpy as np
+import skimage
 
 from skimage.measure import find_contours
 from matplotlib import patches
+from mrcnn import utils
+
+def load_image(path: str):
+    """Load a specified image and return a [H,W,3] Numpy array."""
+    image = skimage.io.imread(path)
+
+    # If grayscale. Convert to RGB for consistency.
+    if image.ndim != 3:
+        image = skimage.color.gray2rgb(image)
+
+    # If has an alpha channel, remove it for consistency
+    if image.shape[-1] == 4:
+        image = image[..., :3]
+
+    return image
+
+def resize_image(image, config):
+    """Resize an image according to configurations."""
+    image, _, _, _, _ = utils.resize_image(
+        image,
+        min_dim=config.IMAGE_MIN_DIM,
+        min_scale=config.IMAGE_MIN_SCALE,
+        max_dim=config.IMAGE_MAX_DIM,
+        mode=config.IMAGE_RESIZE_MODE
+    )
+
+    return image
     
 def extract_annotations(
     boxes,

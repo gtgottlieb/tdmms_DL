@@ -1,11 +1,10 @@
 """Module for the dataset used for MAL."""
 
 import os
-import sys
-
-sys.path.append(os.path.abspath('../'))
+import skimage
 
 from mrcnn import utils
+from tdmms.tdmcoco import CocoConfig
 
 class malDataset(utils.Dataset):
     """
@@ -32,10 +31,11 @@ class malDataset(utils.Dataset):
         'thick': 3  # 10 - 40 layers    / 7 - 28 nm
     }
      
-    def __init__(self):
+    def __init__(self, config: CocoConfig):
         super().__init__()
         
-        self.image_id = 1        
+        self.config = config
+        self.image_id = 1   
             
     def load_dir(
         self,
@@ -61,7 +61,7 @@ class malDataset(utils.Dataset):
             self.add_image(
                 "ali",
                 image_id=self.image_id,
-                path=os.path.join(data_dir, i+'.png'),
+                path=os.path.join(data_dir, i),
             )
             self.image_id += 1
             
@@ -85,10 +85,4 @@ class malDataset(utils.Dataset):
         # s += 'Images and annotations:\n' + '\n'.join([i for i in self.image_info])
 
         return s
-    
-if __name__ == '__main__':
-    ROOT_DIR = os.path.abspath("../../../")
-    dataset = malDataset()
-    dataset.load_dir(os.path.join(ROOT_DIR, 'data'), 'batch4')
 
-    print(dataset.image_info)
