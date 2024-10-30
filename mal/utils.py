@@ -40,6 +40,7 @@ def extract_annotations(
     class_ids, 
     class_names,
     scores=None,
+    sieve_amount=None,
 ) -> list:
     """
     Function to extract the polygon annotations from Mask RCNN detections.
@@ -93,6 +94,9 @@ def extract_annotations(
 
             p = p.get_xy()
             p = [{'x': i[0], 'y': i[1]} for i in p]
+
+            if sieve_amount:
+                p = sieve_annotations(p, sieve_amount)
             instance['polygon'] += p
 
         annotations.append(instance)
@@ -144,3 +148,7 @@ def store_annotations(external_id: str, annotations: list, data: str, ROOT_DIR: 
         json.dump(annotations, f)
 
     return None
+
+def sieve_annotations(annotations: list, amount: int):
+    """Function to sieve the amount of data points in an annotation."""
+    return annotations[::amount]

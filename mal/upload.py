@@ -22,9 +22,10 @@ ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
 print('Root directory:',ROOT_DIR)
 sys.path.append(ROOT_DIR)
 
+from api_config import LABELBOX_API_KEY as API_KEY
 import config
 
-API_KEY = config.LABELBOX_API_KEY
+# API_KEY = api_config.LABELBOX_API_KEY
 client = lb.Client(API_KEY)
 
 data_pre_fix = 'mal_test_'
@@ -78,10 +79,8 @@ def link_dataset_to_project(data: str, project_id: str, data_rows: list):
         - data_rows: which data_rows need to be linked.
     
     """
-    # if project_name == 'test':
-    #     project_id = config.LABELBOX_TEST_ANNOTATIONS_ID
-    # elif project_name == 'NbSe2':
-    #     project_id = config.LABELBOX_NBSE2_SIO2_ID
+    if not project_id:
+        project_id = config.LABELBOX_TEST_PROJECT_ID
 
     project = client.get_project(project_id)
     dataset_name = data_pre_fix + data
@@ -168,13 +167,13 @@ if __name__ == '__main__':
 
     parser.add_argument(
         'command', 
-        required=True,
         help='Which dataset to use.'
     )
 
     parser.add_argument(
         '--project_id', 
-        required=True,
+        required=False,
+        default=None,
         help='The project ID to link the data to'
     )
 

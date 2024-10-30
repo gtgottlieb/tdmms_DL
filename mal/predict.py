@@ -13,6 +13,9 @@ How to run from a terminal:
 import os
 import sys
 import argparse
+from tqdm import tqdm
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
 print('Root directory:',ROOT_DIR)
@@ -24,6 +27,7 @@ from utils import (
     extract_annotations,
     create_annotations_folder,
     store_annotations,
+    sieve_annotations
 )
 from dataset import malDataset
 from tdmms.tdmcoco import CocoConfig
@@ -67,6 +71,8 @@ def predict(data: str, weights: str=None) -> None:
     if not weights:
         weights = 'nbse2_from_mos2_images_20_epochs_111.h5'
 
+    print(f'Loading {weights} weights file..')
+
     MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights)
     model.load_weights(MODEL_PATH, by_name=True)
 
@@ -75,7 +81,9 @@ def predict(data: str, weights: str=None) -> None:
 
     create_annotations_folder(data, ROOT_DIR, overwrite=True)
 
-    for image_info in dataset.image_info:
+    print('Making and storing predictions per image..')
+
+    for image_info in tqdm(dataset.image_info):
         external_id = image_info['path'].split('\\')[-1]
         image = load_image(image_info['path'])
 
@@ -87,7 +95,8 @@ def predict(data: str, weights: str=None) -> None:
             results['masks'],
             results['class_ids'],
             ['','Mono', 'Few','Thick'],
-            results['scores']
+            results['scores'],
+            sieve_amount=10
         )
 
         store_annotations(external_id, annotations, data, ROOT_DIR)
@@ -101,7 +110,6 @@ if __name__ == '__main__':
 
     parser.add_argument(
         'command', 
-        required=True,
         help='Which dataset to use.'
     )
 
