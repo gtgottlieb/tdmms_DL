@@ -146,8 +146,6 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         ax.text(x1, y1 - 6, caption,
                 color='w', size=11, backgroundcolor="none")
 
-        print('Instance: {}, Label: {}'.format(i, label))
-
         # Mask
         mask = masks[:, :, i]
         if show_mask:
@@ -163,8 +161,6 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             # Subtract the padding and flip (y, x) to (x, y)
             verts = np.fliplr(verts) - 1
             p = Polygon(verts, facecolor="none", edgecolor=color)
-
-            print('Polygon (xy): {}'.format(p.get_xy()))
 
             ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8))
