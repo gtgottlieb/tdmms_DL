@@ -6,8 +6,8 @@ How to run from a terminal:
     2. run: $ py evaluate.py <model or dataset>
         with optional arguments:    
             --material <NbSe2, Graphene, Mos2, BN, or WTe2> 
-            --weights <MoS2 or NbSe2>
-            --weights_path
+            --weights <NbSe2, Graphene, Mos2, BN, or WTe2>
+            --weights_path <filename of NbSe2 weights>
             --dataset <val or test>
 """
 
@@ -15,7 +15,7 @@ import os
 import sys
 import argparse
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Set the log level of tensorflow, see bep_utils for more information.
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # Set the log level of tensorflow, see bep.utils for more information.
 
 import tensorflow as tf
 
@@ -29,6 +29,7 @@ from bep.utils import (
     load_train_val_datasets_tdmms,
     check_dir_setup,
     create_dir_setup,
+    load_tdmms_weights
 )
 from bep.dataset import bepDataset
 
@@ -150,7 +151,8 @@ def evaluate_model(material: str, weights: str, weights_path: str, dataset_type:
     print('Running evaluation using the {} data and {} weights..'.format(material, weights))
 
     if weights != 'NbSe2':
-        MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights.lower()+'_mask_rcnn_tdm_0120.h5')
+        weights_filename = load_tdmms_weights(weights)
+        MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights_filename)
     else:
         MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights_path)
 

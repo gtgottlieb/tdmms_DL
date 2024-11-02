@@ -102,6 +102,25 @@ def load_train_val_datasets_tdmms(ROOT_DIR: str, material: str = 'MoS2') -> Tupl
 
     return dataset_train, dataset_val
 
+#-------------------------------------------------------------------------------------------#
+#                                                                                           #
+#                                 FUNCTION TO LOAD TDMMS WEIGHTS                            #
+#                                                                                           #
+#-------------------------------------------------------------------------------------------#
+
+def load_tdmms_weights(material: str) -> str:
+    if material.lower() == 'mos2':
+        return 'mos2_mask_rcnn_tdm_0120.h5'
+    elif material.lower() == 'bn' or material.lower() == 'hbn':
+        return 'bn_mask_rcnn_tdm_0120.h5'
+    elif material.lower() == 'graphene':
+        return 'graphene_mask_rcnn_tdm_0120.h5'
+    elif material.lower() == 'wte2':
+        return 'wte2_mask_rcnn_tdm_0071.h5'
+    else:
+        print(f'Material {material} not found.')
+        raise ValueError
+
 
 #-------------------------------------------------------------------------------------------#
 #                                                                                           #

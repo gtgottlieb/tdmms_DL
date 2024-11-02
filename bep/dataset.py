@@ -36,7 +36,7 @@ class bepDataset(Dataset):
                 train/
                 val/
             
-    Use the check_dir_setup() function from bep_utils.py to
+    Use the check_dir_setup() function from bep.utils.py to
     check if the directory is setup correctly and create a 
     train validation split from the batches.
     """
