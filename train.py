@@ -14,7 +14,7 @@ import sys
 import datetime
 import argparse
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 
 from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
@@ -55,7 +55,7 @@ class TrainingConfig(CocoConfig):
 
         self.CHECKPOINT_NAME = 'nbse2_from_{}_images_{}_epochs'.format(starting_material.lower(), train_images+val_images)
 
-def train_model(reload_data_dir: bool, starting_material: str = 'MoS2'):
+def train_model(reload_data_dir: bool = False, starting_material: str = 'MoS2'):
     """
     Function to train MRCNN.
 
@@ -158,6 +158,7 @@ def train_model(reload_data_dir: bool, starting_material: str = 'MoS2'):
         layers='heads',
         augmentation=augmentation,
     )
+    print("Done training network heads")
     
     # Training - Stage 2
     # Finetune layers from ResNet stage 4 and up
