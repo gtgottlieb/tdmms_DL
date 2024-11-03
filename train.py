@@ -35,10 +35,9 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 physical_devices = tf.config.list_physical_devices('GPU')
-for i in physical_devices:
-    print(f'Found {i}')
-    tf.config.experimental.set_memory_growth(physical_devices, True)
-
+if physical_devices:
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+    
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 
 if not os.path.exists(DEFAULT_LOGS_DIR):
