@@ -11,10 +11,11 @@ How to run from a terminal:
 
 import os
 import sys
-import datetime
 import argparse
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+
+import tensorflow as tf
 
 from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
@@ -33,16 +34,16 @@ from mrcnn import model as modellib
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
+physical_devices = tf.config.list_physical_devices('GPU')
+for i in physical_devices:
+    print(f'Found {i}')
+    tf.config.experimental.set_memory_growth(physical_devices, True)
+
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 
 if not os.path.exists(DEFAULT_LOGS_DIR):
     os.makedirs(DEFAULT_LOGS_DIR)
     print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
-
-# import datetime
-# import tensorflow as tf
-# tf_board_log_dir = os.path.join(ROOT_DIR, "logs", "fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-# tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tf_board_log_dir, histogram_freq=1)
 
 class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
