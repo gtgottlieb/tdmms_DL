@@ -15,6 +15,8 @@ import argparse
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 
+import tensorflow as tf
+
 from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
 from bep.utils import (
@@ -29,14 +31,35 @@ sys.path.append(ROOT_DIR)
 
 from mrcnn import model as modellib
 
+#-------------------------------------------------------------------------------------------#
+#                                                                                           #
+#                                       SETUP GPUS                                          #
+#                                                                                           #
+#-------------------------------------------------------------------------------------------#
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+physical_devices = tf.config.list_physical_devices('GPU')
+for i in physical_devices:
+    print(f'Found physical device:\n{i}')
+#-------------------------------------------------------------------------------------------#
+#                                                                                           #
+#                                  SETUP LOGS DIRECTORY                                     #
+#                                                                                           #
+#-------------------------------------------------------------------------------------------#
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 
 if not os.path.exists(DEFAULT_LOGS_DIR):
     os.makedirs(DEFAULT_LOGS_DIR)
     print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
+
+#-------------------------------------------------------------------------------------------#
+#                                                                                           #
+#                                        TRAINING                                           #
+#                                                                                           #
+#-------------------------------------------------------------------------------------------#
 
 class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
@@ -161,17 +184,17 @@ def train_model(
     ])
     '''
 
-    if intensity >= 1:
-        # Training - Stage 1
-        print("Training network heads")
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE,
-            epochs=30,
-            layers='heads',
-            augmentation=augmentation,
-        )
+    # if intensity >= 1:
+    # Training - Stage 1
+    print("Training network heads")
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE,
+        epochs=30,
+        layers='heads',
+        augmentation=augmentation,
+    )
 
     if intensity >= 2:    
         # Training - Stage 2

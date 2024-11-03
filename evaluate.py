@@ -51,10 +51,8 @@ category_mapping = {
 #                                                                                           #
 #-------------------------------------------------------------------------------------------#
 
-GPUs = ['0']
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
-os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(GPUs)
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 physical_devices = tf.config.list_physical_devices('GPU')
 if physical_devices:
@@ -131,7 +129,7 @@ def evaluate_dataset(material: str) -> None:
 class EvaluationConfig(CocoConfig):
     # Set batch size to 1 since we'll be running inference on
     # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-    GPU_COUNT = len(GPUs)
+    GPU_COUNT = 1
     IMAGES_PER_GPU = 1
     DETECTION_MIN_CONFIDENCE = 0
 
