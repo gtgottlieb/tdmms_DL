@@ -9,10 +9,12 @@ How to run from a terminal:
             --starting_material <MoS2, WTe2, Graphene or BN>
 """
 
+GPUs = [0,1]
+
 import os
 import sys
-import datetime
 import argparse
+import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 
@@ -31,7 +33,7 @@ sys.path.append(ROOT_DIR)
 from mrcnn import model as modellib
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(i) for i in GPUs])
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 
@@ -117,104 +119,107 @@ def train_model(
     )
     config.display()
 
-    model = modellib.MaskRCNN(
-        mode="training",
-        config=config,
-        model_dir=DEFAULT_LOGS_DIR
-    )
+    strategy = tf.distribute.MirroredStrategy(['GPU:'+str(i) for i in GPUs])
 
-    MODEL_PATH = os.path.join(ROOT_DIR, 'weights', starting_material.lower()+'_mask_rcnn_tdm_0120.h5')
-
-    print("Loading weights ", MODEL_PATH)
-    model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"]) # Model weights for coco model
-    # model.load_weights(COCO_MODEL_PATH, by_name=True) # Model weights for a different model??
-
-    augmentation = iaa.SomeOf((0, None), [
-        iaa.Fliplr(0.5),
-        iaa.Flipud(0.5),
-        iaa.Affine(rotate=(-180,180)),
-        iaa.Affine(translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)}),
-        iaa.CropAndPad(percent=(-0.25, 0.25)),
-        #iaa.Multiply((0.5, 1.5)),
-        #iaa.GaussianBlur(sigma=(0.0, 0.5)),
-        #iaa.AdditiveGaussianNoise(scale=(0, 0.15*255))
-        iaa.WithColorspace(
-            to_colorspace="HSV",
-            from_colorspace="RGB",
-            children=iaa.WithChannels(0, iaa.Multiply((0.5,1.5)))
-        ),
-        iaa.WithColorspace(
-            to_colorspace="HSV",
-            from_colorspace="RGB",
-            children=iaa.WithChannels(1, iaa.Multiply((0.5,1.5)))
-        ),
-        iaa.WithColorspace(
-            to_colorspace="HSV",
-            from_colorspace="RGB",
-            children=iaa.WithChannels(2, iaa.Multiply((0.5,1.5)))
-        ),
-        iaa.WithChannels(0, iaa.Multiply((0.5,1.5))),
-        iaa.WithChannels(1, iaa.Multiply((0.5,1.5))),
-        iaa.WithChannels(2, iaa.Multiply((0.5,1.5)))
-    ])
-    '''
-    augmentation = iaa.SomeOf((0, 3), [
-        iaa.Fliplr(0.5),
-        iaa.Flipud(0.5),
-        iaa.OneOf([iaa.Affine(rotate=90),
-                    iaa.Affine(rotate=180),
-                    iaa.Affine(rotate=270)])
-    ])
-    '''
-
-    if intensity >= 1:
-        # Training - Stage 1
-        print("Training network heads")
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE,
-            epochs=30,
-            layers='heads',
-            augmentation=augmentation,
+    with strategy.scope():
+        model = modellib.MaskRCNN(
+            mode="training",
+            config=config,
+            model_dir=DEFAULT_LOGS_DIR
         )
 
-    if intensity >= 2:    
-        # Training - Stage 2
-        # Finetune layers from ResNet stage 4 and up
-        print("Fine tune Resnet stage 4 and up")
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE/10,
-            epochs=60,
-            layers='4+',
-            augmentation=augmentation
-        )
-    
-    if intensity >= 3:
-        # Training - Stage 3
-        # Fine tune all layers
-        print("Fine tune all layers")
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE /10,
-            epochs=90,
-            layers='all',
-            augmentation=augmentation
-        )
-    
-    if intensity >= 4:
-        print("Reduce LR and further tune all layers")
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE /100,
-            epochs=120,
-            layers='all',
-            augmentation=augmentation
-        )
+        MODEL_PATH = os.path.join(ROOT_DIR, 'weights', starting_material.lower()+'_mask_rcnn_tdm_0120.h5')
+
+        print("Loading weights ", MODEL_PATH)
+        model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"]) # Model weights for coco model
+        # model.load_weights(COCO_MODEL_PATH, by_name=True) # Model weights for a different model??
+
+        augmentation = iaa.SomeOf((0, None), [
+            iaa.Fliplr(0.5),
+            iaa.Flipud(0.5),
+            iaa.Affine(rotate=(-180,180)),
+            iaa.Affine(translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)}),
+            iaa.CropAndPad(percent=(-0.25, 0.25)),
+            #iaa.Multiply((0.5, 1.5)),
+            #iaa.GaussianBlur(sigma=(0.0, 0.5)),
+            #iaa.AdditiveGaussianNoise(scale=(0, 0.15*255))
+            iaa.WithColorspace(
+                to_colorspace="HSV",
+                from_colorspace="RGB",
+                children=iaa.WithChannels(0, iaa.Multiply((0.5,1.5)))
+            ),
+            iaa.WithColorspace(
+                to_colorspace="HSV",
+                from_colorspace="RGB",
+                children=iaa.WithChannels(1, iaa.Multiply((0.5,1.5)))
+            ),
+            iaa.WithColorspace(
+                to_colorspace="HSV",
+                from_colorspace="RGB",
+                children=iaa.WithChannels(2, iaa.Multiply((0.5,1.5)))
+            ),
+            iaa.WithChannels(0, iaa.Multiply((0.5,1.5))),
+            iaa.WithChannels(1, iaa.Multiply((0.5,1.5))),
+            iaa.WithChannels(2, iaa.Multiply((0.5,1.5)))
+        ])
+        '''
+        augmentation = iaa.SomeOf((0, 3), [
+            iaa.Fliplr(0.5),
+            iaa.Flipud(0.5),
+            iaa.OneOf([iaa.Affine(rotate=90),
+                        iaa.Affine(rotate=180),
+                        iaa.Affine(rotate=270)])
+        ])
+        '''
+
+        if intensity >= 1:
+            # Training - Stage 1
+            print("Training network heads")
+            model.train(
+                dataset_train,
+                dataset_val,
+                learning_rate=config.LEARNING_RATE,
+                epochs=30,
+                layers='heads',
+                augmentation=augmentation,
+            )
+
+        if intensity >= 2:    
+            # Training - Stage 2
+            # Finetune layers from ResNet stage 4 and up
+            print("Fine tune Resnet stage 4 and up")
+            model.train(
+                dataset_train,
+                dataset_val,
+                learning_rate=config.LEARNING_RATE/10,
+                epochs=60,
+                layers='4+',
+                augmentation=augmentation
+            )
+        
+        if intensity >= 3:
+            # Training - Stage 3
+            # Fine tune all layers
+            print("Fine tune all layers")
+            model.train(
+                dataset_train,
+                dataset_val,
+                learning_rate=config.LEARNING_RATE /10,
+                epochs=90,
+                layers='all',
+                augmentation=augmentation
+            )
+        
+        if intensity >= 4:
+            print("Reduce LR and further tune all layers")
+            model.train(
+                dataset_train,
+                dataset_val,
+                learning_rate=config.LEARNING_RATE /100,
+                epochs=120,
+                layers='all',
+                augmentation=augmentation
+            )
 
     # model_version = 'NbSe2_weights_'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     # os.mkdir(os.path.join(ROOT_DIR, 'saved_weights', model_version))
