@@ -15,8 +15,6 @@ import argparse
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 
-import tensorflow as tf
-
 from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
 from bep.utils import (
@@ -40,11 +38,13 @@ from mrcnn import model as modellib
 GPUs = ['0']
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
-os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(GPUs)
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-physical_devices = tf.config.list_physical_devices('GPU')
-for i in physical_devices:
-    print(f'Found physical device{i}')
+# import tensorflow as tf
+
+# physical_devices = tf.config.list_physical_devices('GPU') # Can only find one GPU??
+# for i in physical_devices:
+#     print(f'Found physical device{i}')
 
 #-------------------------------------------------------------------------------------------#
 #                                                                                           #
@@ -65,7 +65,7 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
 #-------------------------------------------------------------------------------------------#
 
 class TrainingConfig(CocoConfig):
-    GPU_COUNT = len(GPUs)
+    GPU_COUNT = 1
     IMAGES_PER_GPU = 2
 
     def __init__(
@@ -137,8 +137,6 @@ def train_model(
     )
     config.display()
 
-    # strategy = tf.distribute.MirroredStrategy() # Multi GPU support, does not work yet
-    # with strategy.scope():
     model = modellib.MaskRCNN(
         mode="training",
         config=config,

@@ -51,10 +51,10 @@ category_mapping = {
 #                                                                                           #
 #-------------------------------------------------------------------------------------------#
 
-GPUs = [0]
+GPUs = ['0']
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
-os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(i) for i in GPUs])
+os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(GPUs)
 
 physical_devices = tf.config.list_physical_devices('GPU')
 if physical_devices:
