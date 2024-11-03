@@ -29,40 +29,14 @@ sys.path.append(ROOT_DIR)
 
 from mrcnn import model as modellib
 
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                       SETUP GPUS                                          #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
-
-GPUs = ['0']
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-# import tensorflow as tf
-
-# physical_devices = tf.config.list_physical_devices('GPU') # Can only find one GPU??
-# for i in physical_devices:
-#     print(f'Found physical device{i}')
-
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                  SETUP LOGS DIRECTORY                                     #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 
 if not os.path.exists(DEFAULT_LOGS_DIR):
     os.makedirs(DEFAULT_LOGS_DIR)
     print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
-
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                        TRAINING                                           #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
 
 class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
