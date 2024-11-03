@@ -137,7 +137,7 @@ def train_model(
     )
     config.display()
 
-    strategy = tf.distribute.MirroredStrategy(GPUs)
+    strategy = tf.distribute.MirroredStrategy()
 
     with strategy.scope():
         model = modellib.MaskRCNN(
