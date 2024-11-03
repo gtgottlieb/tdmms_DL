@@ -39,18 +39,6 @@ sys.path.append(ROOT_DIR)
 
 from mrcnn import model as modellib
 
-category_mapping = {
-    1: "Mono_",
-    2: "Few_",
-    3: "Thick_"
-}
-
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                       SETUP GPUS                                          #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
@@ -58,23 +46,24 @@ physical_devices = tf.config.list_physical_devices('GPU')
 if physical_devices:
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                  SETUP LOGS DIRECTORY                                     #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
+category_mapping = {
+    1: "Mono_",
+    2: "Few_",
+    3: "Thick_"
+}
+
+class EvaluationConfig(CocoConfig):
+    # Set batch size to 1 since we'll be running inference on
+    # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 1
+    DETECTION_MIN_CONFIDENCE = 0
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'evaluation')
 
 if not os.path.exists(DEFAULT_LOGS_DIR):
     os.makedirs(DEFAULT_LOGS_DIR)
     print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
-
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                  DATSET EVALUATION                                        #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
 
 def evaluate_dataset(material: str) -> None:
     """
@@ -119,19 +108,6 @@ def evaluate_dataset(material: str) -> None:
                 print('        {}: {} images, part {}'.format(cls, all_cls.count(cls), round(all_cls.count(cls)/len(all_cls),2)))
     
     return None
-
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                   MODEL EVALUATION                                        #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
-
-class EvaluationConfig(CocoConfig):
-    # Set batch size to 1 since we'll be running inference on
-    # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-    DETECTION_MIN_CONFIDENCE = 0
 
 def evaluate_model(material: str, weights: str, weights_path: str, dataset_type: str = 'val') -> None:
     """

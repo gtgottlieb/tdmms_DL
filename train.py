@@ -11,11 +11,10 @@ How to run from a terminal:
 
 import os
 import sys
+import datetime
 import argparse
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
-
-import tensorflow as tf
 
 from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
@@ -31,23 +30,8 @@ sys.path.append(ROOT_DIR)
 
 from mrcnn import model as modellib
 
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                       SETUP GPUS                                          #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-physical_devices = tf.config.list_physical_devices('GPU')
-for i in physical_devices:
-    print(f'Found physical device:\n{i}')
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                  SETUP LOGS DIRECTORY                                     #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 
@@ -55,37 +39,23 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
     os.makedirs(DEFAULT_LOGS_DIR)
     print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
 
-#-------------------------------------------------------------------------------------------#
-#                                                                                           #
-#                                        TRAINING                                           #
-#                                                                                           #
-#-------------------------------------------------------------------------------------------#
+# import datetime
+# import tensorflow as tf
+# tf_board_log_dir = os.path.join(ROOT_DIR, "logs", "fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+# tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tf_board_log_dir, histogram_freq=1)
 
 class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 2
 
-    def __init__(
-        self,
-        train_images: int,
-        val_images: int,
-        starting_material: str,
-        intensity: int,
-    ):
+    def __init__(self, train_images: int, val_images: int, starting_material: str):
         super().__init__()
-        batch_size = self.GPU_COUNT * self.IMAGES_PER_GPU
-        total_image_count = train_images + val_images
-        self.STEPS_PER_EPOCH = train_images / batch_size
-        # Checkpoint name format:
-        # <fine-tuned on>_<fine-tuned from>_<images in train and validation set>_<intensity>_<batch size>_<epoch amount>
-        
-        self.CHECKPOINT_NAME = f'nbse2_{starting_material.lower()}_{total_image_count}_{intensity}_{batch_size}_'
+    
+        self.STEPS_PER_EPOCH = train_images / (self.GPU_COUNT * self.IMAGES_PER_GPU)
 
-def train_model(
-    reload_data_dir: bool = False,
-    starting_material: str = 'MoS2',
-    intensity: int = 4
-):
+        self.CHECKPOINT_NAME = 'nbse2_from_{}_images_{}_epochs'.format(starting_material.lower(), train_images+val_images)
+
+def train_model(reload_data_dir: bool = False, starting_material: str = 'MoS2'):
     """
     Function to train MRCNN.
 
@@ -99,11 +69,6 @@ def train_model(
         - computer: if the data directories should be reloaded
         - starting_material: Which weights will be used for fine-tuning on NbSe2.
                     MoS2, BN, Graphene or WTe2
-        - intensity: 1, 2, 3 or 4. Determines the amount of training.
-            1: Only network heads
-            2: adds ResNet stage 4 and up
-            3: adds all layers
-            4: add all layers again with a lower learning rate
     
     Data directory should be setup as the following:
     ROOT_DIR/
@@ -129,8 +94,7 @@ def train_model(
     config = TrainingConfig(
         len(dataset_train.image_ids),
         len(dataset_val.image_ids),
-        starting_material,
-        intensity
+        starting_material
     )
     config.display()
 
@@ -184,7 +148,6 @@ def train_model(
     ])
     '''
 
-    # if intensity >= 1:
     # Training - Stage 1
     print("Training network heads")
     model.train(
@@ -195,43 +158,46 @@ def train_model(
         layers='heads',
         augmentation=augmentation,
     )
+    print("Done training network heads")
+    
+    # Training - Stage 2
+    # Finetune layers from ResNet stage 4 and up
+    print("Fine tune Resnet stage 4 and up")
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE/10,
+        epochs=60,
+        layers='4+',
+        augmentation=augmentation
+    )
+    
+    # Training - Stage 3
+    # Fine tune all layers
+    print("Fine tune all layers")
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE /10,
+        epochs=90,
+        layers='all',
+        augmentation=augmentation
+    )
+    
+    print("Reduce LR and further tune all layers")
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE /100,
+        epochs=120,
+        layers='all',
+        augmentation=augmentation
+    )
 
-    if intensity >= 2:    
-        # Training - Stage 2
-        # Finetune layers from ResNet stage 4 and up
-        print("Fine tune Resnet stage 4 and up")
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE/10,
-            epochs=60,
-            layers='4+',
-            augmentation=augmentation
-        )
-    
-    if intensity >= 3:
-        # Training - Stage 3
-        # Fine tune all layers
-        print("Fine tune all layers")
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE /10,
-            epochs=90,
-            layers='all',
-            augmentation=augmentation
-        )
-    
-    if intensity >= 4:
-        print("Reduce LR and further tune all layers")
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE /100,
-            epochs=120,
-            layers='all',
-            augmentation=augmentation
-        )
+    # model_version = 'NbSe2_weights_'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    # os.mkdir(os.path.join(ROOT_DIR, 'saved_weights', model_version))
+    # config.write_txt(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'config.txt'))
+    # model.save_weights(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'mask_rcnn_tdm_final.h5')) # Does not work
 
     return None   
 
@@ -240,6 +206,7 @@ if __name__ == '__main__':
         description='Train model'
     )
 
+    # Whether the code is running on the super computer DelftBlue or locally.
     parser.add_argument(
         '--reload_data_dir', 
         required=False,
@@ -252,13 +219,6 @@ if __name__ == '__main__':
         required=False,
         default='MoS2',
         help='MoS2, WTe2, Graphene or BN'
-    )
-
-    parser.add_argument(
-        '--intensity',
-        required=False,
-        default=4,
-        help='Intensity 1, 2, 3 or 4'
     )
     
     args = parser.parse_args()
