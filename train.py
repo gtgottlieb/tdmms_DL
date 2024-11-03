@@ -9,14 +9,13 @@ How to run from a terminal:
             --starting_material <MoS2, WTe2, Graphene or BN>
 """
 
-GPUs = [0,1]
-
 import os
 import sys
 import argparse
-import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
+
+import tensorflow as tf
 
 from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
@@ -32,8 +31,26 @@ sys.path.append(ROOT_DIR)
 
 from mrcnn import model as modellib
 
+#-------------------------------------------------------------------------------------------#
+#                                                                                           #
+#                                       SETUP GPUS                                          #
+#                                                                                           #
+#-------------------------------------------------------------------------------------------#
+
+GPUs = [0,1]
+
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
 os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(i) for i in GPUs])
+
+physical_devices = tf.config.list_physical_devices('GPU')
+for i in physical_devices:
+    print(f'Found physical device{i}')
+
+#-------------------------------------------------------------------------------------------#
+#                                                                                           #
+#                                  SETUP LOGS DIRECTORY                                     #
+#                                                                                           #
+#-------------------------------------------------------------------------------------------#
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'training')
 
@@ -41,13 +58,14 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
     os.makedirs(DEFAULT_LOGS_DIR)
     print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
 
-# import datetime
-# import tensorflow as tf
-# tf_board_log_dir = os.path.join(ROOT_DIR, "logs", "fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
-# tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=tf_board_log_dir, histogram_freq=1)
+#-------------------------------------------------------------------------------------------#
+#                                                                                           #
+#                                        TRAINING                                           #
+#                                                                                           #
+#-------------------------------------------------------------------------------------------#
 
 class TrainingConfig(CocoConfig):
-    GPU_COUNT = 2
+    GPU_COUNT = len(GPUs)
     IMAGES_PER_GPU = 2
 
     def __init__(
@@ -119,7 +137,7 @@ def train_model(
     )
     config.display()
 
-    strategy = tf.distribute.MirroredStrategy(['GPU:'+str(i) for i in GPUs])
+    strategy = tf.distribute.MirroredStrategy(','.join([str(i) for i in GPUs]))
 
     with strategy.scope():
         model = modellib.MaskRCNN(
