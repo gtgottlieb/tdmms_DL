@@ -6,4 +6,5 @@ imgaug==0.4.0
 scikit-image==0.16.2
 numpy==1.19.2
 protobuf==3.9.2
+pandas==1.3.4
 IPython
