@@ -37,10 +37,10 @@ from mrcnn import model as modellib
 #                                                                                           #
 #-------------------------------------------------------------------------------------------#
 
-GPUs = [0,1]
+GPUs = ['0','1']
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID" 
-os.environ["CUDA_VISIBLE_DEVICES"] = ','.join([str(i) for i in GPUs])
+os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(GPUs)
 
 physical_devices = tf.config.list_physical_devices('GPU')
 for i in physical_devices:
@@ -137,7 +137,7 @@ def train_model(
     )
     config.display()
 
-    strategy = tf.distribute.MirroredStrategy(','.join([str(i) for i in GPUs]))
+    strategy = tf.distribute.MirroredStrategy(GPUs)
 
     with strategy.scope():
         model = modellib.MaskRCNN(
