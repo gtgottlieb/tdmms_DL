@@ -7,11 +7,14 @@ How to run from a terminal:
         with optional arguments:   
             --reload_data_dir <True or False> 
             --starting_material <MoS2, WTe2, Graphene or BN>
+            --intensity <1, 2, 3 or 4>
+            --last_layers <True or False>
 """
 
 import os
 import sys
 import argparse
+import datetime
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 
@@ -66,20 +69,24 @@ class TrainingConfig(CocoConfig):
         val_images: int,
         starting_material: str,
         intensity: int,
+        last_layers: bool,
     ):
         super().__init__()
         batch_size = self.GPU_COUNT * self.IMAGES_PER_GPU
         total_image_count = train_images + val_images
         self.STEPS_PER_EPOCH = train_images / batch_size
         # Checkpoint name format:
-        # <fine-tuned on>_<fine-tuned from>_<images in train and validation set>_<intensity>_<batch size>_<epoch amount>
+        # <datetime now>_<fine-tuned on>_<fine-tuned from>_<images in train and validation set>_<intensity>_<batch size>_<epoch amount>
         
-        self.CHECKPOINT_NAME = f'nbse2_{starting_material.lower()}_{total_image_count}_{intensity}_{batch_size}_'
+        date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}_'
 
 def train_model(
     reload_data_dir: bool = False,
     starting_material: str = 'MoS2',
-    intensity: int = 4
+    intensity: int = 4,
+    last_layers: bool = False
 ):
     """
     Function to train MRCNN.
@@ -99,6 +106,8 @@ def train_model(
             2: adds ResNet stage 4 and up
             3: adds all layers
             4: add all layers again with a lower learning rate
+        - last_layers: True or False. Determines if the last layers are trained or not.
+            Requires a matching amount of classes between transfer and new model.
     
     Data directory should be setup as the following:
     ROOT_DIR/
@@ -125,7 +134,8 @@ def train_model(
         len(dataset_train.image_ids),
         len(dataset_val.image_ids),
         starting_material,
-        intensity
+        intensity,
+        last_layers,
     )
     config.display()
 
@@ -138,8 +148,12 @@ def train_model(
     MODEL_PATH = os.path.join(ROOT_DIR, 'weights', starting_material.lower()+'_mask_rcnn_tdm_0120.h5')
 
     print("Loading weights ", MODEL_PATH)
-    model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"]) # Model weights for coco model
-    # model.load_weights(COCO_MODEL_PATH, by_name=True) # Model weights for a different model??
+
+    if last_layers:
+        # Amount of classes of transer model must be the same as the new model
+        model.load_weights(MODEL_PATH, by_name=True)
+    else:
+        model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
 
     augmentation = iaa.SomeOf((0, None), [
         iaa.Fliplr(0.5),
@@ -228,11 +242,6 @@ def train_model(
             augmentation=augmentation
         )
 
-    # model_version = 'NbSe2_weights_'+datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    # os.mkdir(os.path.join(ROOT_DIR, 'saved_weights', model_version))
-    # config.write_txt(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'config.txt'))
-    # model.save_weights(os.path.join(ROOT_DIR, 'saved_weights', model_version, 'mask_rcnn_tdm_final.h5')) # Does not work
-
     return None   
 
 if __name__ == '__main__':
@@ -260,7 +269,19 @@ if __name__ == '__main__':
         default=1,
         help='Intensity 1, 2, 3 or 4'
     )
+
+    parser.add_argument(
+        '--last_layers',
+        required=False,
+        default=False,
+        help='True or False'
+    )
     
     args = parser.parse_args()
 
-    train_model(args.reload_data_dir, args.starting_material)
+    train_model(
+        args.reload_data_dir,
+        args.starting_material,
+        args.intensity,
+        args.last_layers
+    )
