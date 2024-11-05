@@ -149,7 +149,7 @@ def train_model(
 
     print("Loading weights ", MODEL_PATH)
 
-    if last_layers:
+    if last_layers == 'True':
         # Amount of classes of transer model must be the same as the new model
         model.load_weights(MODEL_PATH, by_name=True)
     else:
@@ -282,6 +282,6 @@ if __name__ == '__main__':
     train_model(
         args.reload_data_dir,
         args.starting_material,
-        args.intensity,
+        int(args.intensity),
         args.last_layers
     )
