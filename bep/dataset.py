@@ -1,13 +1,24 @@
 """Module that creates a custom dataset to load custom data"""
 
 import os
+import sys
+import contextlib
 import json
 import cv2
 import numpy as np
 
+ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
+print('Root directory:',ROOT_DIR)
+sys.path.append(ROOT_DIR)
+sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
+
 from pycocotools.coco import COCO
 from mrcnn.utils import Dataset
 from pycocotools import mask as maskUtils
+
+class NullWriter:
+    def write(self, message):
+        pass
 
 class bepDataset(Dataset):
     """
@@ -149,8 +160,10 @@ class bepDataset(Dataset):
         
         if not os.path.isfile(annotations_file+'.json') or reload_annotations:
             self.convert_annotations_to_coco(annotations_file, data_dir)
-                        
-        coco = COCO(annotations_file + '.json')
+        
+        with contextlib.redirect_stdout(NullWriter()):
+            coco = COCO(annotations_file + '.json')
+
         class_ids = sorted(coco.getCatIds())
         image_ids = list(coco.imgs.keys())
 
@@ -311,4 +324,6 @@ class bepDataset(Dataset):
         return s
     
 if __name__ == '__main__':
-    ROOT_DIR = os.path.abspath("../../")
+    split = bepDataset()
+    split.load_dir(os.path.join(ROOT_DIR, 'data'), 'split', reload_annotations=False)
+    split.prepare()

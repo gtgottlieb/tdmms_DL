@@ -320,7 +320,7 @@ def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
 #-------------------------------------------------------------------------------------------#
 
 
-def get_ax(rows=1, cols=1, size=15):
+def get_ax(rows=1, cols=1, size=8):
     """Return a Matplotlib Axes array to be used in
     all visualizations in the notebook. Provide a
     central point to control graph sizes.
@@ -335,7 +335,8 @@ class runModel():
             self,
             model: modellib.MaskRCNN,
             config: CocoConfig, 
-            dataset: Union[bepDataset, CocoDataset] = None
+            dataset: Union[bepDataset, CocoDataset] = None,
+            plot_size: int = 8
         ) -> None:
         """
         Instantiate the class like:
@@ -347,6 +348,7 @@ class runModel():
         self.config = config
         self.image_id = None
         self.dataset = dataset
+        self.plot_size = plot_size
     
     def run(
             self, 
@@ -382,8 +384,7 @@ class runModel():
 
         title = self.model.name + ' Predictions'
 
-        # Display results
-        ax = get_ax(1)
+        ax = get_ax(1, 1, self.plot_size)
         r = results[0]
         visualize.display_instances(
             image, r['rois'],
@@ -391,51 +392,40 @@ class runModel():
             r['class_ids'], 
             ['','Mono', 'Few','Thick'], r['scores'],
             ax=ax,
-            title=title)
-        # log("gt_class_id", gt_class_id)
-        # log("gt_bbox", gt_bbox)
-        # log("gt_mask", gt_mask)
-
+            title=title
+        )
         return None
     
     def gt(
             self, 
             dataset: Union[bepDataset, CocoDataset] = None, 
             rand: bool = False, 
-            image_idx: int = 0
+            image_idx: int = None
         ) -> None:
         """Function to show the ground truth of the image, on which run() made predictions."""
         if dataset:
             self.dataset = dataset
         assert self.dataset
 
-        if not self.image_id+1:
-            print('Please run .run() befor .gt().')
-            raise AssertionError
+        if rand:
+            self.image_id = random.choice(self.dataset.image_ids)
+        elif image_idx:
+            self.image_id = self.dataset.image_ids[image_idx]
+        elif not self.image_id:
+            print("Either run .run() first, or set 'rand' to True or set 'image_idx'")
 
         image = self.dataset.load_image(self.image_id)
         mask, class_ids = self.dataset.load_mask(self.image_id)
-        original_shape = image.shape
-        # Resize
+
         image, window, scale, padding, _ = utils.resize_image(
             image, 
             min_dim=self.config.IMAGE_MIN_DIM, 
             max_dim=self.config.IMAGE_MAX_DIM,
             mode=self.config.IMAGE_RESIZE_MODE)
         mask = utils.resize_mask(mask, scale, padding)
-        # Compute Bounding box
         bbox = utils.extract_bboxes(mask)
 
-        # Display image and additional stats
-        # print("image_id: ", self.image_id, self.dataset.image_reference(self.image_id))
-        # print("Original shape: ", original_shape)
-        # log("image", image)
-        # log("mask", mask)
-        # log("class_ids", class_ids)
-        # print(class_ids)
-        # log("bbox", bbox)
-        # # Display image and instances
-        ax = get_ax(1)
+        ax = get_ax(1, 1, self.plot_size)
         title = 'Ground Truth'
         visualize.display_instances(
             image,
@@ -446,6 +436,7 @@ class runModel():
             ax=ax, 
             title=title
         )
+        return None
 
     def run_from_path(self, path: str) -> None:
         """Run detection on a single image."""
@@ -456,8 +447,7 @@ class runModel():
 
         title = self.model.name + ' Predictions'
 
-        # Display results
-        ax = get_ax(1)
+        ax = get_ax(1, 1, self.plot_size)
         r = results[0]
         visualize.display_instances(
             image, r['rois'],
@@ -465,8 +455,8 @@ class runModel():
             r['class_ids'], 
             ['','Mono', 'Few','Thick'], r['scores'],
             ax=ax,
-            title=title)
-
+            title=title
+        )
         return None
 
     def load_image(self, path: str):
@@ -500,9 +490,8 @@ class runModel():
         s += '\nDataset: {}'.format(self.dataset)
 
         return s
-                
+
 if __name__ == '__main__':
     ROOT_DIR = os.path.abspath("../")
     check_dir_setup(ROOT_DIR, 0.7)
     # create_dir_setup(ROOT_DIR, 0.7)
- 
