@@ -4,6 +4,8 @@
 Things that do not work yet:
     - Annotations get linked to the wrong split image
     - Annotations disappear
+    - Often a very small part of a flake appears in the split image
+        of another flake
     - Many edge cases when there are many flakes
         - Small split image appears in multiple largers split images
     - Code is probably unnecessarily complicated
@@ -16,6 +18,7 @@ import json
 import shutil
 import contextlib
 import numpy as np
+
 from typing import Tuple, List
 from shapely.geometry import box, Polygon, Point
 
