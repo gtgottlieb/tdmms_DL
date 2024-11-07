@@ -1,13 +1,23 @@
 """Module to Slit an image with multiple flakes / segmentations into multiple images"""
 
+"""
+Things that do not work yet:
+    - Annotations get linked to the wrong split image
+    - Annotations disappear
+    - Many edge cases when there are many flakes
+        - Small split image appears in multiple largers split images
+    - Code is probably unnecessarily complicated
+"""
+
 import cv2
 import os
 import sys
 import json
 import shutil
+import contextlib
 import numpy as np
 from typing import Tuple, List
-from shapely.geometry import box, Polygon
+from shapely.geometry import box, Polygon, Point
 
 ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../../'))
 print('Root directory:',ROOT_DIR)
@@ -123,34 +133,54 @@ def coords_to_bbox(coords):
     h = y2 - y1
     return (x, y, w, h)
 
+# def check_overlap(annotation: dict, bbox: Polygon):
+#     segmentation = annotation['segmentation']
+#     for segment in segmentation:
+#         polygon = Polygon(np.array(segment).reshape(-1, 2))
+#         if bbox.intersects(polygon):
+#             return True
+#     return False
+
 def check_overlap(annotation: dict, bbox: Polygon):
     segmentation = annotation['segmentation']
     for segment in segmentation:
         polygon = Polygon(np.array(segment).reshape(-1, 2))
-        if bbox.intersects(polygon):
-            return True
+        for point in polygon.exterior.coords:
+            if bbox.contains(Point(point)):
+                return True
     return False
 
-def check_overlap_image(already_loaded_annotations: List[int], image_info: dict, bbox: Polygon):
-    overlapping_annotations = []
-    overlapping_ids = []
+def check_overlap_image(
+    already_loaded_ids_image: List[int],
+    already_loaded_ids_flake: List[int],
+    already_switched_ids_flake: List[int],
+    image_info: dict,
+    bbox: Polygon
+):
+    new_overlapping_annotations = []
+    new_overlapping_ids = []
+    split_overlapping_ids = []
 
     for annotation in image_info['annotations']:
-        if annotation['id'] in already_loaded_annotations:
+        if annotation['id'] in already_loaded_ids_flake:
             continue
 
         if check_overlap(annotation, bbox):
-            overlapping_ids.append(annotation['id'])
-            overlapping_annotations.append(annotation)
+            if (annotation['id'] in already_loaded_ids_image) and (annotation['id'] not in already_switched_ids_flake):
+                print('Overlap with a flake from another split {}'.format(annotation['id']))
+                split_overlapping_ids.append(annotation['id'])
+            else:
+                new_overlapping_ids.append(annotation['id'])
+                new_overlapping_annotations.append(annotation)
     
-    if len(overlapping_ids) != 0:
-        print('{} overlapping annotations found: {}'.format(len(overlapping_ids), overlapping_ids))
+    if len(new_overlapping_ids) != 0:
+        print('{} new overlapping annotations found: {}'.format(len(new_overlapping_ids), new_overlapping_ids))
     else:
-        print('No overlapping annotations found')
-    return overlapping_annotations, overlapping_ids
+        print('No new overlapping annotations found')
+    return new_overlapping_annotations, new_overlapping_ids, split_overlapping_ids
 
 def add_overlapping_annotations(
-    split_idx,
+    split_id,
     overlapping_annotations: List[dict],
     filename: str,
 ):
@@ -162,7 +192,7 @@ def add_overlapping_annotations(
 
         flake_annotation = annotation.copy()
         flake_annotation['image_id'] = filename
-        flake_annotation['id'] = int('{}{}'.format(flake_annotation['id'], split_idx))
+        flake_annotation['id'] = int('{}{}'.format(split_id, flake_annotation['id']))
         
         annotations.append(flake_annotation)
     
@@ -182,26 +212,28 @@ def reset_image_dir(path: str) -> None:
     
     return None
 
-def check_nested_images(annotations_dict: dict, images: List[str]):
-    print('Checking for nested images')
-    for image in images:
-        print(f'Image: {image}')
-        for split_image in annotations_dict['images']:
-            if not image.split('.')[0] in split_image['file_name'] or not 'flake_bbox' in split_image:
-                print('Skipping {}'.format(split_image['file_name']))
-                continue
-            print('Corresponding split image: {}'.format(split_image['file_name']))
-            
-            x, y, w, h = [int(i) for i in split_image['flake_bbox']]
-            parent_bbox = box(x, y, x+w, y+h)
+def change_split_image(ids_to_switch, new_split_image, annotations_dict):
+    print('\nChanging split image of annotations:\n{}'.format(ids_to_switch))
+    switched_ids = []
 
-            for annotation in annotations_dict['annotations']:
-                if annotation['image_id'] == split_image['file_name']:
-                    continue
-                
-                if check_overlap(annotation, parent_bbox):
-                    print('Found nested image!')
-                    print('Parent: {}, Child: {}'.format(split_image['file_name'], annotation['image_id']))
+    for annotation in annotations_dict['annotations']:
+        split_id = annotation['image_id'].split('split_')[-1].split('.')[0]
+        for id_to_switch in ids_to_switch:
+            updated_id = int('{}{}'.format(split_id, id_to_switch))
+            if annotation['id'] == updated_id:
+                print("[{}, {}] Changing {} to {}".format(id_to_switch, updated_id, annotation['image_id'], new_split_image))
+                annotation['image_id'] = new_split_image
+                switched_ids.append(id_to_switch)
+
+    for split_image in annotations_dict['images']:
+        annotation_count = sum(1 for i in annotations_dict['annotations'] if i['image_id'] == split_image['file_name'])
+        # print('Split image: {}, annotation count: {}'.format(split_image['file_name'], annotation_count))
+        if annotation_count == 0:
+            print('Deleting split image: {}'.format(split_image['file_name']))
+            os.remove(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit', split_image['file_name']))
+            annotations_dict['images'].remove(split_image)
+    
+    return annotations_dict, switched_ids
 
 def split_images(
     annotation_threshold: int = 15,
@@ -247,14 +279,17 @@ def split_images(
 
         image_info = data.image_info[image_id]
 
-        overlapping_ids_list = []
+        already_added_ids_image = []
         
         for annotation in image_info['annotations']:
             annotation_id = annotation['id']
-            if annotation_id in overlapping_ids_list:
+            if annotation_id in already_added_ids_image:
                 print(f'Annotation {annotation_id} already in an image due to earlier overlap, skipping')
                 continue
-            overlapping_ids_list.append(annotation_id)
+            already_added_ids_image.append(annotation_id)
+
+            already_added_ids_flake = [annotation_id]
+            already_switched_ids_flake = []
 
             first_overlap_check = True
             last_overlap_count = 0
@@ -284,15 +319,21 @@ def split_images(
                     print('\nRunning first overlap check..')
                     cut_out_bbox = box(x-border, y-border, x+w+border, y+h+border)
                 else:
-                    print('Running another overlap check')
+                    print('Running another overlap check..')
                     x, y, w, h = [int(i) for i in updated_bbox]
                     cut_out_bbox = box(x-border, y-border, x+w+border, y+h+border)
 
-                overlapping_annotations, overlapping_ids = check_overlap_image(overlapping_ids_list, image_info, cut_out_bbox)
-
+                overlapping_annotations, overlapping_ids, split_overlapping_ids = check_overlap_image(
+                    already_added_ids_image,
+                    already_added_ids_flake,
+                    already_switched_ids_flake,
+                    image_info,
+                    cut_out_bbox
+                )
 
                 if len(overlapping_ids) != 0:
-                    overlapping_ids_list += overlapping_ids
+                    already_added_ids_image += overlapping_ids
+                    already_added_ids_flake += overlapping_ids
                     x_coords, y_coords, updated_annotations = add_overlapping_annotations(
                         annotation_id,
                         overlapping_annotations,
@@ -306,6 +347,10 @@ def split_images(
                     updated_coords = (min(x_coords_list), min(y_coords_list), max(x_coords_list), max(y_coords_list))
                     updated_bbox = coords_to_bbox(updated_coords)
                     bbox = updated_bbox
+                
+                if split_overlapping_ids:
+                    annotations_dict, switched_ids = change_split_image(split_overlapping_ids, filename, annotations_dict)
+                    already_switched_ids_flake += switched_ids
 
                 last_overlap_count = len(overlapping_ids)
                 first_overlap_check = False
@@ -326,9 +371,6 @@ def split_images(
 
             flake_image = cut_out_flake(tiled_background, bbox, image, border)
             store_image(filename, flake_image)
-        break
-
-    check_nested_images(annotations_dict, images)
 
     print('Storing annotations file')
     with open(annotations_file, 'w+') as f:
@@ -336,5 +378,11 @@ def split_images(
     
     return None
 
+class NullWriter:
+    def write(self, message):
+        pass
+
 if __name__ == '__main__':
-    split_images()
+    # with contextlib.redirect_stdout(NullWriter)):
+        # split_images(border=20)
+    split_images(border=40)

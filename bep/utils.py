@@ -400,7 +400,8 @@ class runModel():
             self, 
             dataset: Union[bepDataset, CocoDataset] = None, 
             rand: bool = False, 
-            image_idx: int = None
+            image_idx: int = None,
+            show_bbox: bool = True,
         ) -> None:
         """Function to show the ground truth of the image, on which run() made predictions."""
         if dataset:
@@ -434,7 +435,8 @@ class runModel():
             class_ids,
             self.dataset.class_names,
             ax=ax, 
-            title=title
+            title=title,
+            show_bbox=show_bbox
         )
         return None
 
