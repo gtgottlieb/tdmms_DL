@@ -402,6 +402,7 @@ class runModel():
             rand: bool = False, 
             image_idx: int = None,
             show_bbox: bool = True,
+            filename: str = None,
         ) -> None:
         """Function to show the ground truth of the image, on which run() made predictions."""
         if dataset:
@@ -412,6 +413,10 @@ class runModel():
             self.image_id = random.choice(self.dataset.image_ids)
         elif image_idx:
             self.image_id = self.dataset.image_ids[image_idx]
+        elif filename:
+            all_image_ids = [i['id'] for i in self.dataset.image_info]
+            image_id = [i['id'] for i in self.dataset.image_info if filename in i['path']][0]
+            self.image_id = all_image_ids.index(image_id)
         elif not self.image_id:
             print("Either run .run() first, or set 'rand' to True or set 'image_idx'")
 
