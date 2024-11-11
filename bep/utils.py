@@ -15,7 +15,7 @@ import mrcnn.model as modellib
 from mrcnn import utils
 from mrcnn.model import log
 
-from typing import Tuple, Union
+from typing import Tuple, Union, List
 
 data_types = ['images', 'annotations']
 data_sets = ['train', 'val', 'test']
@@ -187,9 +187,11 @@ def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float]) -> N
 
     batches = [i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images')) if 'batch' in  i]
     print('Found batches:',', '.join(batches))
+
+    images_for_training = get_images_for_training(ROOT_DIR, batches, 15)
     
     reset_dirs(ROOT_DIR)
-    data_split_images(batches, ROOT_DIR, data_split)
+    data_split_images(batches, ROOT_DIR, data_split, images_for_training)
     data_split_annotations(batches, ROOT_DIR)
 
     return None
@@ -220,8 +222,27 @@ def reset_dirs(ROOT_DIR: str) -> None:
                 print('Error in deleting annotations file:',e)
                 
     return None
-                        
-def data_split_images(batches: list, ROOT_DIR: str, data_split: Tuple[float, float, float]) -> None:
+
+def get_images_for_training(ROOT_DIR: str, batches: list, annotation_threshold: int = 15):
+    images = []
+    for batch in batches:
+        rows = []
+        with open(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')) as f:
+            rows += [json.loads(l) for l in f.readlines()]
+        
+        for row in rows:
+            annotations = len(list(row['data_row']['project'].values())[0]['labels']['annotations']['objects'])
+            if annotations >= annotation_threshold:
+                images.append(row['data_row']['external_id'])
+
+    return images
+
+def data_split_images(
+    batches: list,
+    ROOT_DIR: str,
+    data_split: Tuple[float, float, float],
+    images_for_training: List[str],
+) -> None:
     """
     Function to load the images from all found batches and split the 
     images into a train and validation set.
@@ -238,6 +259,9 @@ def data_split_images(batches: list, ROOT_DIR: str, data_split: Tuple[float, flo
     imgs_batches = [i for j in imgs_batches for i in j]
     
     random.shuffle(imgs_batches)
+
+    for i in images_for_training:
+        imgs_batches.insert(0, imgs_batches.pop(imgs_batches.index(i)))
     
     img_count = len(imgs_batches)    
     print(f'Total image count: {img_count}')
@@ -423,7 +447,7 @@ class runModel():
         image = self.dataset.load_image(self.image_id)
         mask, class_ids = self.dataset.load_mask(self.image_id)
 
-        image, window, scale, padding, _ = utils.resize_image(
+        image, _, scale, padding, _ = utils.resize_image(
             image, 
             min_dim=self.config.IMAGE_MIN_DIM, 
             max_dim=self.config.IMAGE_MAX_DIM,

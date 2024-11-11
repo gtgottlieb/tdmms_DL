@@ -425,6 +425,6 @@ class NullWriter:
         pass
 
 if __name__ == '__main__':
-    # with contextlib.redirect_stdout(NullWriter)):
-        # split_images(border=20)
-    split_images(border=15)
+    with contextlib.redirect_stdout(NullWriter):
+        split_images(border=15)
+    # split_images(border=15)
