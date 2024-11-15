@@ -1,17 +1,5 @@
 """Module to Slit an image with multiple flakes / segmentations into multiple images"""
 
-"""
-Things that do not work yet:
-    - Annotations get linked to the wrong split image
-    - Annotations disappear
-    - Split image cuts of part of flake, annotation is added but not the entire bounding box
-        is in the splitflake
-    - Flake is missing
-
-Idea for development:
-    - Add a box in the image of the final bbox instead of creating an image split
-"""
-
 import cv2
 import os
 import sys
@@ -49,7 +37,7 @@ def create_background(
 
     return tiled_background, sample_image.shape[1], sample_image.shape[0]
 
-def get_images_to_split(image_info: List[dict], annotation_threshold: int) -> list:
+def get_images_to_split_from_dataset(image_info: List[dict], annotation_threshold: int) -> list:
     images = []
     
     for i in image_info:
@@ -59,6 +47,24 @@ def get_images_to_split(image_info: List[dict], annotation_threshold: int) -> li
             images.append(i['path'].split('\\')[-1])
 
     return images
+
+def get_images_to_split_from_batches(annotation_threshold: int = 15):
+    batches = [i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images')) if ('batch' in  i and i != 'batchsplit')]
+    print('Found batches:',', '.join(batches))
+
+    images = []
+    for batch in batches:
+        rows = []
+        with open(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')) as f:
+            rows += [json.loads(l) for l in f.readlines()]
+        
+        for row in rows:
+            annotations = len(list(row['data_row']['project'].values())[0]['labels']['annotations']['objects'])
+            if annotations >= annotation_threshold:
+                images.append(row['data_row']['external_id'])
+
+    return images
+
 
 def get_image_ids_positions(image_info: List[dict], images: List[str]) -> list:
     all_image_ids = [i['id'] for i in image_info]
@@ -252,18 +258,15 @@ def extract_bbox_coords(bbox_coords: list):
 def split_images(
     annotation_threshold: int = 15,
     border: int = 10,
-    dataset: str = 'train',
-    area_threshold: int = None,
 ) -> None:
     # Reset the /batchsplit image directory
     reset_image_dir(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit'))
 
-    if dataset == 'train':
-        data, _, _ = load_train_val_datasets(ROOT_DIR)
+    data, _, _ = load_train_val_datasets(ROOT_DIR)
 
     # Get all the image filenames that contain more annotations
     # than the annotation_threshold
-    images = get_images_to_split(data.image_info, annotation_threshold)
+    images = get_images_to_split_from_dataset(data.image_info, annotation_threshold)
 
     # Create a background from a small part of backgorund without flakes
     tiled_background, width, height = create_background()
@@ -421,7 +424,7 @@ def split_images(
     return None
 
 class NullWriter:
-    def write(self, message):
+    def write(self):
         pass
 
 if __name__ == '__main__':

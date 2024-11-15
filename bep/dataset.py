@@ -202,9 +202,18 @@ class bepDataset(Dataset):
             self.load_dir(path, dir, reload_annotations)
         
         return None
-            
     
-    def load_mask(self, image_id):
+    def load_split(self, path: str):
+        if os.path.isdir(os.path.join(path, 'images', 'batchsplit')):
+            split_images = list(set([i.split('_split')[0] for i in os.listdir(os.path.join(path, 'images', 'batchsplit'))]))        
+            self.image_info = [i for i in self.image_info if not any(j in i['path'] for j in split_images)]
+
+            self.load_dir(path, 'batchsplit')
+        else:
+            print('No batchsplit data found, please run bep/image_splitting/split.py first.\nSkipping split data')
+        return None
+    
+    def load_mask(self, image_id, rotate: bool = False, shape: int = None):
         """Load instance masks for the given image.
 
         Different datasets use different ways to store masks. This
@@ -225,18 +234,24 @@ class bepDataset(Dataset):
         # Build mask of shape [height, width, instance_count] and list
         # of class IDs that correspond to each channel of the mask.
         for annotation in annotations:
+            loop_annotation = annotation.copy()
+            if rotate:
+                print('Rotating annotation')
+                loop_annotation = self.rotate_180_clockwise(annotation, shape[0], shape[1])
+            
+
             class_id = self.map_source_class_id(
-                "ali.{}".format(annotation['category_id']))
+                "ali.{}".format(loop_annotation['category_id']))
             
             if class_id:
-                m = self.annToMask(annotation, image_info["height"],
+                m = self.annToMask(loop_annotation, image_info["height"],
                                    image_info["width"])
                 # Some objects are so small that they're less than 1 pixel area
                 # and end up rounded out. Skip those objects.
                 if m.max() < 1:
                     continue
                 # Is it a crowd? If so, use a negative class ID.
-                if annotation['iscrowd']:
+                if loop_annotation['iscrowd']:
                     # Use negative class ID for crowds
                     class_id *= -1
                     # For crowd masks, annToMask() sometimes returns a mask
@@ -315,6 +330,69 @@ class bepDataset(Dataset):
         img_height, img_width, _ = img_sample.shape
         
         return imgs, img_height, img_width
+    
+    @staticmethod
+    def rotate_clockwise(annotation, original_height):
+        def rotate_polygon(polygon):
+            rotated_polygon = []
+            for i in range(0, len(polygon), 2):
+                x, y = polygon[i], polygon[i + 1]
+                new_x = y
+                new_y = original_height - x
+                rotated_polygon.extend([new_x, new_y])
+            return rotated_polygon
+
+        def rotate_bbox(bbox):
+            x, y, width, height = bbox
+            new_x = y
+            new_y = original_height - (x + width)
+            return [new_x, new_y, height, width]
+
+        # Rotate segmentation
+        annotation['segmentation'] = [
+            rotate_polygon(polygon) for polygon in annotation['segmentation']
+        ]
+
+        # Rotate bbox
+        annotation['bbox'] = rotate_bbox(annotation['bbox'])
+
+        return annotation
+    
+    @staticmethod
+    def rotate_180_clockwise(annotation, original_width, original_height):
+        def rotate_polygon(polygon, width, height):
+            rotated_polygon = []
+            for i in range(0, len(polygon), 2):
+                x, y = polygon[i], polygon[i + 1]
+                # First rotation
+                temp_x = y
+                temp_y = height - x
+                # Second rotation
+                new_x = width - temp_x
+                new_y = temp_y
+                rotated_polygon.extend([new_x, new_y])
+            return rotated_polygon
+
+        def rotate_bbox(bbox, width, height):
+            x, y, box_width, box_height = bbox
+            # First rotation
+            temp_x = y
+            temp_y = height - (x + box_width)
+            # Second rotation
+            new_x = width - (temp_x + box_height)
+            new_y = temp_y
+            return [new_x, new_y, box_width, box_height]
+
+        # First rotation (90 degrees), then second rotation (90 degrees)
+        annotation['segmentation'] = [
+            rotate_polygon(polygon, original_width, original_height)
+            for polygon in annotation['segmentation']
+        ]
+
+        annotation['bbox'] = rotate_bbox(annotation['bbox'], original_width, original_height)
+
+        return annotation
+
         
     def __str__(self):
         s = 'Path: {}'.format(self.path)
@@ -322,8 +400,9 @@ class bepDataset(Dataset):
         # s += 'Images and annotations:\n' + '\n'.join([i for i in self.image_info])
 
         return s
-    
+
 if __name__ == '__main__':
-    split = bepDataset()
-    split.load_dir(os.path.join(ROOT_DIR, 'data'), 'split', reload_annotations=False)
-    split.prepare()
+    train = bepDataset()
+    train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train', reload_annotations=False)
+    train.load_split(os.path.join(ROOT_DIR, 'data'))
+    train.prepare()

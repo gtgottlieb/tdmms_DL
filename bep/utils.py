@@ -6,6 +6,7 @@ import random
 import shutil
 import matplotlib.pyplot as plt
 import skimage
+import cv2
 
 from bep.dataset import bepDataset
 from tdmms.tdmcoco import CocoDataset, CocoConfig
@@ -63,6 +64,7 @@ def load_train_val_datasets(ROOT_DIR: str) -> Tuple[bepDataset, bepDataset]:
 
     dataset_train = bepDataset()
     dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train', reload_annotations=True)
+    dataset_train.load_split(os.path.join(ROOT_DIR, 'data'))
     dataset_train.prepare()
 
     dataset_val = bepDataset()
@@ -185,7 +187,7 @@ def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float]) -> N
     
     print('Creating directories from batches..')
 
-    batches = [i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images')) if 'batch' in  i]
+    batches = [i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images')) if ('batch' in  i and i != 'batchsplit')]
     print('Found batches:',', '.join(batches))
 
     images_for_training = get_images_for_training(ROOT_DIR, batches, 15)
@@ -231,9 +233,12 @@ def get_images_for_training(ROOT_DIR: str, batches: list, annotation_threshold: 
             rows += [json.loads(l) for l in f.readlines()]
         
         for row in rows:
-            annotations = len(list(row['data_row']['project'].values())[0]['labels']['annotations']['objects'])
-            if annotations >= annotation_threshold:
-                images.append(row['data_row']['external_id'])
+            annotation_count = 0
+            for label in list(row['projects'].values())[0]['labels']:
+                annotation_count += len(label['annotations']['objects'])
+
+            if annotation_count >= annotation_threshold:
+                images.append((batch, row['data_row']['external_id']))
 
     return images
 
@@ -360,7 +365,8 @@ class runModel():
             model: modellib.MaskRCNN,
             config: CocoConfig, 
             dataset: Union[bepDataset, CocoDataset] = None,
-            plot_size: int = 8
+            plot_size: int = 8,
+            iteration_index: int = None,
         ) -> None:
         """
         Instantiate the class like:
@@ -373,6 +379,9 @@ class runModel():
         self.image_id = None
         self.dataset = dataset
         self.plot_size = plot_size
+
+        if iteration_index:
+            self.iteration_index = iteration_index
     
     def run(
             self, 
@@ -425,6 +434,7 @@ class runModel():
             dataset: Union[bepDataset, CocoDataset] = None, 
             rand: bool = False, 
             image_idx: int = None,
+            iterate: bool = False,
             show_bbox: bool = True,
             filename: str = None,
         ) -> None:
@@ -437,15 +447,33 @@ class runModel():
             self.image_id = random.choice(self.dataset.image_ids)
         elif image_idx:
             self.image_id = self.dataset.image_ids[image_idx]
+            print('Running on:\n{}'.format(dataset.image_info[image_idx]))
         elif filename:
             all_image_ids = [i['id'] for i in self.dataset.image_info]
             image_id = [i['id'] for i in self.dataset.image_info if filename in i['path']][0]
             self.image_id = all_image_ids.index(image_id)
+        elif iterate:
+            try:
+                self.image_id = self.dataset.image_ids[self.iteration_index]
+                print('Running on:\n{}'.format(dataset.image_info[self.iteration_index]))
+                self.iteration_index += 1
+            except IndexError:
+                print('Iterated through all images')
+                return None
         elif not self.image_id:
-            print("Either run .run() first, or set 'rand' to True or set 'image_idx'")
+            print("Either run .run() first, set 'rand' to True, set 'image_idx', set 'filename', or set 'iterate' to True.")
 
         image = self.dataset.load_image(self.image_id)
-        mask, class_ids = self.dataset.load_mask(self.image_id)
+
+        height, width, _ = image.shape
+        
+        rotate = False
+        if height > width:
+            print('Need to rotate image to visualise')
+            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+            rotate = True
+        
+        mask, class_ids = self.dataset.load_mask(self.image_id, rotate, (width, height))
 
         image, _, scale, padding, _ = utils.resize_image(
             image, 
@@ -523,6 +551,4 @@ class runModel():
         return s
 
 if __name__ == '__main__':
-    ROOT_DIR = os.path.abspath("../")
-    check_dir_setup(ROOT_DIR, 0.7)
-    # create_dir_setup(ROOT_DIR, 0.7)
+    create_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
