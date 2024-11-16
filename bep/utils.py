@@ -467,13 +467,11 @@ class runModel():
 
         height, width, _ = image.shape
         
-        rotate = False
         if height > width:
-            print('Need to rotate image to visualise')
-            image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
-            rotate = True
-        
-        mask, class_ids = self.dataset.load_mask(self.image_id, rotate, (width, height))
+            print('Image is in portrait mode, cannot visualise')
+            return None
+
+        mask, class_ids = self.dataset.load_mask(self.image_id)
 
         image, _, scale, padding, _ = utils.resize_image(
             image, 
