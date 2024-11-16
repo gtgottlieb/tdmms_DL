@@ -44,7 +44,7 @@ Set by running: os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #                                                                                           #
 #-------------------------------------------------------------------------------------------#
 
-def load_train_val_datasets(ROOT_DIR: str) -> Tuple[bepDataset, bepDataset]:
+def load_train_val_datasets(ROOT_DIR: str, load_split: bool = True) -> Tuple[bepDataset, bepDataset]:
     """
     Function to load train and validation datasets of the BEP data.
     
@@ -64,7 +64,8 @@ def load_train_val_datasets(ROOT_DIR: str) -> Tuple[bepDataset, bepDataset]:
 
     dataset_train = bepDataset()
     dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train', reload_annotations=True)
-    dataset_train.load_split(os.path.join(ROOT_DIR, 'data'))
+    if load_split:
+        dataset_train.load_split(os.path.join(ROOT_DIR, 'data'))
     dataset_train.prepare()
 
     dataset_val = bepDataset()
@@ -185,7 +186,7 @@ def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float]) -> None
 def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float]) -> None:
     """Function to reset and create train and validation directories."""
     
-    print('Creating directories from batches..')
+    print('Creating directories from batches')
 
     batches = [i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images')) if ('batch' in  i and i != 'batchsplit')]
     print('Found batches:',', '.join(batches))
@@ -240,6 +241,8 @@ def get_images_for_training(ROOT_DIR: str, batches: list, annotation_threshold: 
             if annotation_count >= annotation_threshold:
                 images.append((batch, row['data_row']['external_id']))
 
+    print('Images forced for training directory: {}'.format(images))
+
     return images
 
 def data_split_images(
@@ -275,7 +278,7 @@ def data_split_images(
     val_amount = round(data_split[1]*img_count)
     test_amount = img_count - train_amount - val_amount
     
-    print('Copying images..')
+    print('Copying images')
     # i = (batch_name, image_name)
     for i in imgs_batches[:train_amount]:
         shutil.copy(
@@ -295,7 +298,7 @@ def data_split_images(
             os.path.join(ROOT_DIR, 'data', 'images', 'test')
         )
 
-    print('Checking image counts..')
+    print('Checking image counts')
     check_count_list = [(train_amount, 'train'), (val_amount, 'val'), (test_amount, 'test')]
     for i,j in check_count_list:
         folder_img_count = len([i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images', j))])
@@ -324,7 +327,7 @@ def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
     val_imgs = os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'val'))
     test_imgs = os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'test'))
     
-    print('Creating and writing annotation files..')
+    print('Creating and writing annotation files')
     with open(os.path.join(ROOT_DIR, 'data', 'annotations', 'train.ndjson'), "w+") as f:
         for row in rows:
             if row['data_row']['external_id'] in train_imgs:
@@ -379,7 +382,8 @@ class runModel():
         self.image_id = None
         self.dataset = dataset
         self.plot_size = plot_size
-
+        
+        self.iteration_index = 0
         if iteration_index:
             self.iteration_index = iteration_index
     

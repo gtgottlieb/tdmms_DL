@@ -7,11 +7,6 @@ import json
 import cv2
 import numpy as np
 
-ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
-print('Root directory:',ROOT_DIR)
-sys.path.append(ROOT_DIR)
-sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
-
 from pycocotools.coco import COCO
 from mrcnn.utils import Dataset
 from pycocotools import mask as maskUtils
@@ -333,7 +328,4 @@ class bepDataset(Dataset):
         return s
 
 if __name__ == '__main__':
-    train = bepDataset()
-    train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train', reload_annotations=False)
-    train.load_split(os.path.join(ROOT_DIR, 'data'))
-    train.prepare()
+    pass
