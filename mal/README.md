@@ -1,11 +1,11 @@
-**Model Assisted Labeling Directory**
+## Model Assisted Labeling Directory
 
 Contains code to use a (trained) model to make initial predictions, extract the annotations in polygon format, and upload the images with annotations to Labelbox.com.
 
- :exclamation: **Note that this `mal` module uses a different python environment than the rest of the project. So create a separate environment from `mal/requirements.txt`.** :exclamation:
+**Note that this `mal` module uses a different python environment than the rest of the project. So create a separate environment from `mal/requirements.txt`.**
 
 Follow these steps to perform model assisted labeling:
- 1. Create a `config.py` file in the root directory of the project that contains the following:
+ 1. Create a `api_config.py` file in the root directory of the project that contains the following:
  ```
  LABELBOX_API_KEY  =  'your api key'
 ```
