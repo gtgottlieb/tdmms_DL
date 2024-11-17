@@ -15,6 +15,7 @@ import os
 import sys
 import argparse
 import datetime
+import logging
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'
 
@@ -27,10 +28,13 @@ from bep.utils import (
     create_dir_setup,
     load_train_val_datasets
 )
+from bep.pushover import notify
 
 ROOT_DIR = os.path.abspath("../")
 print('Root directory:',ROOT_DIR)
 sys.path.append(ROOT_DIR)
+
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 from mrcnn import model as modellib
 
@@ -138,6 +142,7 @@ def train_model(
         last_layers,
     )
     config.display()
+    notify('Started training test {}'.format(config.CHECKPOINT_NAME[:-1]))
 
     model = modellib.MaskRCNN(
         mode="training",
@@ -193,6 +198,7 @@ def train_model(
     ])
     '''
 
+    notify('Training network heads')
     if intensity >= 1:
         # Training - Stage 1
         print("Training network heads")
@@ -205,6 +211,7 @@ def train_model(
             augmentation=augmentation,
         )
 
+    notify('Fine tune Resnet stage 4 and up')
     if intensity >= 2:    
         # Training - Stage 2
         # Finetune layers from ResNet stage 4 and up
@@ -218,6 +225,7 @@ def train_model(
             augmentation=augmentation
         )
     
+    notify('Fine tune all layers')
     if intensity >= 3:
         # Training - Stage 3
         # Fine tune all layers
@@ -231,6 +239,7 @@ def train_model(
             augmentation=augmentation
         )
     
+    notify('Reduce LR and further tune all layers')
     if intensity >= 4:
         print("Reduce LR and further tune all layers")
         model.train(
@@ -241,6 +250,8 @@ def train_model(
             layers='all',
             augmentation=augmentation
         )
+
+    notify('Done training')
 
     return None   
 
@@ -279,9 +290,13 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
-    train_model(
-        args.reload_data_dir,
-        args.starting_material,
-        int(args.intensity),
-        args.last_layers
-    )
+    try:
+        train_model(
+            args.reload_data_dir,
+            args.starting_material,
+            int(args.intensity),
+            args.last_layers
+        )
+    except Exception as e:
+        logging.error("An exception occurred", exc_info=True)
+        notify("An error occurred during training:\n{}".format(e))
