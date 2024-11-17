@@ -7,7 +7,7 @@ Contains code to use a (trained) model to make initial predictions, extract the 
 Follow these steps to perform model assisted labeling:
  1. Create a `api_config.py` file in the root directory of the project that contains the following:
  ```
- LABELBOX_API_KEY  =  'your api key'
+ LABELBOX_API_KEY  =  '<your API key>'
 ```
 2. **In your AI environment** run `python mal/predict.py <dataset> --weights <weights file>`.  `<dataset>` is the directory name of the image directory in `data/images/` that contains all the images that will be pre-labeled. `<weights file>` is the filename of the weights file in the `weights/` folder that will be used for predictions.
 3. Create another python environment, the Labelbox environment, with the requirements found in the `mal/requirements.txt` file.

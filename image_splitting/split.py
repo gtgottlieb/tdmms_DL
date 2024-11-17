@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import contextlib
+import argparse
 
 from shapely.geometry import box
 
@@ -34,6 +35,7 @@ def split_images(
             and split image creation.
         - log_iteration: bool = whether to write images with drawn bboxs during overlap iterations
     """
+
     utils.reset_image_dir(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit'))
 
     data, _, _ = load_train_val_datasets(ROOT_DIR, load_split=False)
@@ -184,6 +186,26 @@ class NullWriter:
         pass
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Train model'
+    )
+
+    parser.add_argument(
+        '--annotation_threshold', 
+        required=False,
+        default=15,
+        help='An integer'
+    )
+
+    parser.add_argument(
+        '--border', 
+        required=False,
+        default=15,
+        help='An integer'
+    )
+    args = parser.parse_args()
+
     # with contextlib.redirect_stdout(NullWriter):
     #     split_images(annotation_threshold=15, border=15)
-    split_images(border=15)
+
+    split_images(annotation_threshold=int(args.annotation_threshold), border=int(args.border))

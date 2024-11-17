@@ -1,6 +1,3 @@
-
-  
-
 # Mask R-CNN for 2D Materials Detection Fine-tuned on NbSe2
 
 This repository contains the model, training, and evaluation code for 2D materials detection using Mask R-CNN. The goal of this project is to fine-tune the model of [Masubuchi *et al.*](https://www.nature.com/articles/s41699-020-0137-z), which was created for graphene, MoS2, hBN and WTe2, on NbSe2. This repository is built on the repository of [Masubuchi *et al.*](https://github.com/tdmms/tdmms_DL).
@@ -86,8 +83,8 @@ To monitor the training of the model Pushover notifications are integrated.
 2. Create an application, see [this page](https://pushover.net/apps/build).
 3. Add these two lines to the `api_config.py` file in the root directory:
 ```
-PUSHOVER_APP_KEY = <your app key>
-PUSHOVER_USER_KEY = <your user key>
+PUSHOVER_APP_KEY = '<your app key>'
+PUSHOVER_USER_KEY = '<your user key>'
 ```
 
 ## Contact
