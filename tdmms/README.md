@@ -1,2 +1,2 @@
-**TDMMS Directory**
+## TDMMS Directory
 Directory that contains original code from TDMMS.
