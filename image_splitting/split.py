@@ -1,4 +1,14 @@
-"""Module to split images with many segmentations into multiple images"""
+"""
+Module to split images with many segmentations into multiple images
+
+How to run from a terminal:
+    run $ py image_splitting/split.py
+        Optional arguments:
+            --annotation_threshold <integer>
+            --border <integer>
+        Example:
+            $ py image_splitting/split.py --annotation_threshold 15 --border 15
+"""
 
 import cv2
 import os

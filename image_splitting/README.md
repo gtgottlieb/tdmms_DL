@@ -19,4 +19,6 @@ With optional arguments:
 
 This will create a new folder in the `data/image/` directory called `batchsplit/` and a new annotations file in the `data/annotations/` directory called `batchsplit.json`.
 
+After creating the `batchsplit` directory, manually check the images and annotations using the `inspect_model.ipynb` notebook.
+
 The `load_train_val_datasets` function from `bep.utils` automatically tries to load the `batchsplit` data for the training set. To disable this set the `load_split` argument to `False`.
