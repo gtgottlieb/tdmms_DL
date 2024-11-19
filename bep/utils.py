@@ -465,7 +465,8 @@ class runModel():
                 print('Iterated through all images')
                 return None
         elif not self.image_id:
-            print("Either run .run() first, set 'rand' to True, set 'image_idx', set 'filename', or set 'iterate' to True.")
+            if self.image_id != 0:
+                print("Either run .run() first, set 'rand' to True, set 'image_idx', set 'filename', or set 'iterate' to True.")
 
         image = self.dataset.load_image(self.image_id)
 

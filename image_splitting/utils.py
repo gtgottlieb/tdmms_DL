@@ -2,9 +2,9 @@
 
 import cv2
 import os
-import sys
 import json
 import shutil
+import random
 import numpy as np
 
 from typing import Tuple, List
@@ -46,6 +46,14 @@ def create_background(
     tiled_background = cv2.GaussianBlur(tiled_background, (11, 11), 0)
 
     return tiled_background, sample_image.shape[1], sample_image.shape[0]
+
+def get_random_bg(ROOT_DIR, zoom):
+    bg_dir = os.path.join(ROOT_DIR, 'data', 'background', zoom)
+    bg_images = os.listdir(bg_dir)
+
+    image = random.choice(bg_images)
+    image = cv2.imread(image)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
 def get_images_to_split_from_dataset(image_info: List[dict], annotation_threshold: int) -> list:
     """

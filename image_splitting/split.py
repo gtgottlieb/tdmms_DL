@@ -16,6 +16,7 @@ import sys
 import json
 import contextlib
 import argparse
+import random
 
 from shapely.geometry import box
 
@@ -52,7 +53,7 @@ def split_images(
 
     images = utils.get_images_to_split_from_dataset(data.image_info, annotation_threshold)
 
-    tiled_background, width, height = utils.create_background(100, os.path.join(ROOT_DIR, 'data', 'images', 'batch4', '67_sio2_NbSe2_Exfoliation_C5-84_f4_img.png'))
+    # tiled_background, width, height = utils.create_background(100, os.path.join(ROOT_DIR, 'data', 'images', 'batch4', '67_sio2_NbSe2_Exfoliation_C5-84_f4_img.png'))
 
     image_id_positions = utils.get_image_ids_positions(data.image_info, images)
 
@@ -77,6 +78,9 @@ def split_images(
         "images": []
     }
 
+    bg_dir = os.path.join(ROOT_DIR, 'data', 'backgrounds', '100x')
+    bg_images = os.listdir(bg_dir)
+
     for image_id in image_id_positions:
         image_info = data.image_info[image_id]
 
@@ -96,6 +100,11 @@ def split_images(
             
             already_loaded_ids_flake = [annotation_id]
 
+            bg_image = random.choice(bg_images)
+            bg_image = cv2.imread(os.path.join(bg_dir, bg_image))
+            bg_image = cv2.cvtColor(bg_image, cv2.COLOR_BGR2RGB)
+            height, width, _ = bg_image.shape
+
             first_overlap_check = True
             last_overlap_count = 0
 
@@ -111,7 +120,7 @@ def split_images(
 
             while first_overlap_check or last_overlap_count > 0:
                 if log_iteration:
-                    flake_image = utils.cut_out_flake(tiled_background, bbox, image, border)
+                    flake_image = utils.cut_out_flake(bg_image, bbox, image, border)
                     filename_it = image_info[image_id]['path'].split('\\')[-1].split('.')[0] + f'_split_{annotation_id}' + '_bbox_' + '_'.join([str(i) for i in list(bbox)])+ '.png'
                     coords = utils.bbox_to_coords(bbox)
                     coords = [int(i) for i in coords]
@@ -179,7 +188,7 @@ def split_images(
             print(f'Final bbox: {bbox}')
             print(f'Creating and storing image {filename}')
 
-            flake_image = utils.cut_out_flake(tiled_background, bbox, image, border)
+            flake_image = utils.cut_out_flake(bg_image, bbox, image, border)
             utils.store_image(ROOT_DIR, filename, flake_image)
 
     print('\nDeleting images with zero annotations')
