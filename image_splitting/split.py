@@ -78,7 +78,7 @@ def split_images(
         "images": []
     }
 
-    bg_dir = os.path.join(ROOT_DIR, 'data', 'backgrounds', '100x')
+    bg_dir = os.path.join(ROOT_DIR, 'data', 'backgrounds', 'marked_sisio2', '100x')
     bg_images = os.listdir(bg_dir)
 
     for image_id in image_id_positions:
@@ -100,8 +100,8 @@ def split_images(
             
             already_loaded_ids_flake = [annotation_id]
 
-            bg_image = random.choice(bg_images)
-            bg_image = cv2.imread(os.path.join(bg_dir, bg_image))
+            bg_image_filename = random.choice(bg_images)
+            bg_image = cv2.imread(os.path.join(bg_dir, bg_image_filename))
             bg_image = cv2.cvtColor(bg_image, cv2.COLOR_BGR2RGB)
             height, width, _ = bg_image.shape
 

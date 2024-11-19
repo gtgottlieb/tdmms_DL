@@ -9,15 +9,13 @@ ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
 sys.path.append(ROOT_DIR)
 sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
 
-try:
-  from api_config import PUSHOVER_APP_KEY, PUSHOVER_USER_KEY
-except:
-  PUSHOVER_APP_KEY = None
-  PUSHOVER_USER_KEY = None
+from api_config import PUSHOVER_APP_KEY, PUSHOVER_USER_KEY
 
 def notify(message: str):
-  assert (PUSHOVER_APP_KEY and PUSHOVER_USER_KEY), 'Pushover API keys not found.'
-
+  """
+  Function that posts a request to the Pushover API. This request contains
+  a message that will be shown on the configured phone.
+  """
   try:
     requests.post("https://api.pushover.net/1/messages.json", data = {
       "token": PUSHOVER_APP_KEY,

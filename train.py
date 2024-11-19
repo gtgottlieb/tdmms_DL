@@ -142,7 +142,7 @@ def train_model(
         last_layers,
     )
     config.display()
-    notify('Started training test {}'.format(config.CHECKPOINT_NAME[:-1]))
+    notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
 
     model = modellib.MaskRCNN(
         mode="training",
