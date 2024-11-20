@@ -9,7 +9,7 @@ import skimage
 import cv2
 
 from bep.dataset import bepDataset
-from tdmms.tdmcoco import CocoDataset, CocoConfig
+from tdmms.tdmcoco import ROOT_DIR, CocoDataset, CocoConfig
 
 from mrcnn import visualize
 import mrcnn.model as modellib
