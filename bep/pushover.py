@@ -16,6 +16,8 @@ def notify(message: str):
   Function that posts a request to the Pushover API. This request contains
   a message that will be shown on the configured phone.
   """
+  print(message)
+
   try:
     requests.post("https://api.pushover.net/1/messages.json", data = {
       "token": PUSHOVER_APP_KEY,

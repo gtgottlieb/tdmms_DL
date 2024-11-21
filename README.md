@@ -36,7 +36,6 @@ The directory should be setup as follows:
 - logs/
 - mal/ *used for temporary files for MAL*
 - tddms_DL/ *this repository*
-- training_curves/*contains for each run the training curves in csv format*
 - weights/ *contains all model weights, also from tdmms*
 - api_config.py *contains secret API keys for Labelbox and Pushover*
 

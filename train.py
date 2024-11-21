@@ -203,10 +203,9 @@ def train_model(
     ])
     '''
 
-    notify('Training network heads')
     if intensity >= 1:
         # Training - Stage 1
-        print("Training network heads")
+        notify('Training network heads {}'.format(config.CHECKPOINT_NAME[:-1]))
         model.train(
             dataset_train,
             dataset_val,
@@ -216,11 +215,10 @@ def train_model(
             augmentation=augmentation,
         )
 
-    notify('Fine tune Resnet stage 4 and up')
     if intensity >= 2:    
         # Training - Stage 2
         # Finetune layers from ResNet stage 4 and up
-        print("Fine tune Resnet stage 4 and up")
+        notify('Fine tune Resnet stage 4 and up {}'.format(config.CHECKPOINT_NAME[:-1]))
         model.train(
             dataset_train,
             dataset_val,
@@ -230,11 +228,10 @@ def train_model(
             augmentation=augmentation
         )
     
-    notify('Fine tune all layers')
     if intensity >= 3:
         # Training - Stage 3
         # Fine tune all layers
-        print("Fine tune all layers")
+        notify('Fine tune all layers {}'.format(config.CHECKPOINT_NAME[:-1]))
         model.train(
             dataset_train,
             dataset_val,
@@ -244,9 +241,9 @@ def train_model(
             augmentation=augmentation
         )
     
-    notify('Reduce LR and further tune all layers')
+    notify('Reduce LR and further tune all layers {}'.format(config.CHECKPOINT_NAME[:-1]))
     if intensity >= 4:
-        print("Reduce LR and further tune all layers")
+        notify('Reduce LR and further tune all layers {}'.format(config.CHECKPOINT_NAME[:-1]))
         model.train(
             dataset_train,
             dataset_val,
