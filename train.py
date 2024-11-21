@@ -26,7 +26,8 @@ from tdmms.tdmcoco import CocoConfig
 from bep.utils import (
     check_dir_setup, 
     create_dir_setup,
-    load_train_val_datasets
+    load_train_val_datasets,
+    load_tdmms_weights
 )
 from bep.pushover import notify
 
@@ -40,7 +41,7 @@ from mrcnn import model as modellib
 
 tf.random.set_seed(42)
 
-BATCH_SIZE = 8
+BATCH_SIZE = 2
 
 #--------------------------------------------------------------#
 #                         SETUP GPU                            #
@@ -154,7 +155,7 @@ def train_model(
         model_dir=DEFAULT_LOGS_DIR
     )
 
-    MODEL_PATH = os.path.join(ROOT_DIR, 'weights', starting_material.lower()+'_mask_rcnn_tdm_0120.h5')
+    MODEL_PATH = os.path.join(ROOT_DIR, 'weights', load_tdmms_weights(starting_material))
 
     print("Loading weights ", MODEL_PATH)
 

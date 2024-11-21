@@ -115,7 +115,7 @@ def load_tdmms_weights(material: str) -> str:
     if material.lower() == 'mos2':
         return 'mos2_mask_rcnn_tdm_0120.h5'
     elif material.lower() == 'bn' or material.lower() == 'hbn':
-        return 'bn_mask_rcnn_tdm_0120.h5'
+        return 'bn_mask_rcnn_tdm_120.h5'
     elif material.lower() == 'graphene':
         return 'graphene_mask_rcnn_tdm_0120.h5'
     elif material.lower() == 'wte2':
