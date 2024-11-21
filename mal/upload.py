@@ -80,7 +80,7 @@ def link_dataset_to_project(data: str, project_id: str, data_rows: list):
     
     """
     if not project_id:
-        project_id = config.LABELBOX_TEST_PROJECT_ID
+        project_id = config.LABELBOX_MAIN_PROJECT_ID
 
     project = client.get_project(project_id)
     dataset_name = data_pre_fix + data

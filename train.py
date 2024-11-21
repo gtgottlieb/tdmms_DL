@@ -40,6 +40,8 @@ from mrcnn import model as modellib
 
 tf.random.set_seed(42)
 
+BATCH_SIZE = 8
+
 #--------------------------------------------------------------#
 #                         SETUP GPU                            #
 #--------------------------------------------------------------#
@@ -67,7 +69,7 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
 
 class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 4
+    IMAGES_PER_GPU = BATCH_SIZE
 
     def __init__(
         self,

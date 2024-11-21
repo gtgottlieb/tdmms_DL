@@ -28,6 +28,8 @@ sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
 from bep.utils import load_train_val_datasets
 import image_splitting.utils as utils
 
+BACKGROUND_IMAGE_DIRECTORY = os.path.join(ROOT_DIR, 'data', 'backgrounds', 'marked_sisio2', '100x')
+
 def split_images(
     annotation_threshold: int = 15,
     border: int = 15,
@@ -78,8 +80,7 @@ def split_images(
         "images": []
     }
 
-    bg_dir = os.path.join(ROOT_DIR, 'data', 'backgrounds', 'marked_sisio2', '100x')
-    bg_images = os.listdir(bg_dir)
+    bg_images = os.listdir(BACKGROUND_IMAGE_DIRECTORY)
 
     for image_id in image_id_positions:
         image_info = data.image_info[image_id]
@@ -101,7 +102,7 @@ def split_images(
             already_loaded_ids_flake = [annotation_id]
 
             bg_image_filename = random.choice(bg_images)
-            bg_image = cv2.imread(os.path.join(bg_dir, bg_image_filename))
+            bg_image = cv2.imread(os.path.join(BACKGROUND_IMAGE_DIRECTORY, bg_image_filename))
             bg_image = cv2.cvtColor(bg_image, cv2.COLOR_BGR2RGB)
             height, width, _ = bg_image.shape
 
