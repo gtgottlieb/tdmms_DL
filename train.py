@@ -29,6 +29,7 @@ from bep.utils import (
     load_train_val_datasets,
     load_tdmms_weights
 )
+from bep.callbacks import MeanAveragePrecisionCallback
 from notifications.discord import notify
 
 ROOT_DIR = os.path.abspath("../")
@@ -91,6 +92,11 @@ class TrainingConfig(CocoConfig):
 
         self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}_'
         self.NAME = self.CHECKPOINT_NAME[:-1]
+
+class InferenceConfig(CocoConfig):
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 1
+    NAME = 'inference'
 
 def train_model(
     reload_data_dir: bool = False,
@@ -166,6 +172,13 @@ def train_model(
     else:
         model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
 
+    inference_config = InferenceConfig()
+    model_inference = modellib.MaskRCNN(
+        mode="inference",
+        config=inference_config,
+        model_dir=DEFAULT_LOGS_DIR
+    )
+
     augmentation = iaa.SomeOf((0, None), [
         iaa.Fliplr(0.5),
         iaa.Flipud(0.5),
@@ -204,6 +217,15 @@ def train_model(
     ])
     '''
 
+    mean_average_precision_callback = MeanAveragePrecisionCallback(
+        model,
+        model_inference,
+        dataset_val,
+        calculate_map_at_every_X_epoch=5,
+        verbose=1
+    )
+
+
     if intensity >= 1:
         # Training - Stage 1
         notify('Training network heads {}'.format(config.CHECKPOINT_NAME[:-1]))
@@ -214,6 +236,7 @@ def train_model(
             epochs=30,
             layers='heads',
             augmentation=augmentation,
+            custom_callbacks=[mean_average_precision_callback],
         )
 
     if intensity >= 2:    
@@ -226,7 +249,8 @@ def train_model(
             learning_rate=config.LEARNING_RATE/10,
             epochs=60,
             layers='4+',
-            augmentation=augmentation
+            augmentation=augmentation,
+            custom_callbacks=[mean_average_precision_callback],
         )
     
     if intensity >= 3:
@@ -239,7 +263,8 @@ def train_model(
             learning_rate=config.LEARNING_RATE /10,
             epochs=90,
             layers='all',
-            augmentation=augmentation
+            augmentation=augmentation,
+            custom_callbacks=[mean_average_precision_callback],
         )
     
     notify('Reduce LR and further tune all layers {}'.format(config.CHECKPOINT_NAME[:-1]))
@@ -251,7 +276,8 @@ def train_model(
             learning_rate=config.LEARNING_RATE /100,
             epochs=120,
             layers='all',
-            augmentation=augmentation
+            augmentation=augmentation,
+            custom_callbacks=[mean_average_precision_callback],
         )
 
     notify('Done training')
