@@ -29,7 +29,7 @@ from bep.utils import (
     load_train_val_datasets,
     load_tdmms_weights
 )
-from bep.pushover import notify
+from notifications.discord import notify
 
 ROOT_DIR = os.path.abspath("../")
 print('Root directory:',ROOT_DIR)
