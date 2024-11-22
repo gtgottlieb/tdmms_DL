@@ -6,9 +6,9 @@ import random
 import shutil
 import matplotlib.pyplot as plt
 import skimage
-import cv2
 
 from bep.dataset import bepDataset
+from bep.exceptions import WeightsNotFound, IncorrectDataSplit
 from tdmms.tdmcoco import CocoDataset, CocoConfig
 
 from mrcnn import visualize
@@ -121,8 +121,7 @@ def load_tdmms_weights(material: str) -> str:
     elif material.lower() == 'wte2':
         return 'wte2_mask_rcnn_tdm_0071.h5'
     else:
-        print(f'Material {material} not found.')
-        raise ValueError
+        raise WeightsNotFound(f'Weights for {material} not found.')
 
 
 #-------------------------------------------------------------------------------------------#
@@ -188,7 +187,11 @@ def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float]) -> N
     
     print('Creating directories from batches')
 
-    batches = [i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images')) if ('batch' in  i and i != 'batchsplit')]
+    batches = [
+        i 
+        for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images'))
+        if ('batch' in  i and i != 'batchsplit')
+    ]
     print('Found batches:',', '.join(batches))
 
     images_for_training = get_images_for_training(ROOT_DIR, batches, 15)
@@ -230,19 +233,24 @@ def get_images_for_training(ROOT_DIR: str, batches: list, annotation_threshold: 
     images = []
     for batch in batches:
         rows = []
-        with open(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')) as f:
-            rows += [json.loads(l) for l in f.readlines()]
+
+        try:
+            with open(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')) as f:
+                rows += [json.loads(l) for l in f.readlines()]
+        except FileNotFoundError:
+            print('{}.ndjson not found. Skipping'.format(batch))
+
         
         for row in rows:
-            annotation_count = 0
-            for label in list(row['projects'].values())[0]['labels']:
-                annotation_count += len(label['annotations']['objects'])
+            annotation_count = sum(
+                len(label['annotations']['objects'])
+                for label in list(row['projects'].values())[0]['labels']
+            )
 
             if annotation_count >= annotation_threshold:
                 images.append((batch, row['data_row']['external_id']))
 
     print('Images forced for training directory: {}'.format(images))
-
     return images
 
 def data_split_images(
@@ -259,10 +267,13 @@ def data_split_images(
         - batches: list of all the found batch folders
         - train_size: size of the train split, also determines the val split
     """
+    img_dir = os.path.join(ROOT_DIR, 'data', 'images')
+
     imgs_batches = []
     
     for batch in batches:
-        imgs_batches.append((batch, os.listdir(os.path.join(ROOT_DIR, 'data', 'images', batch))))    
+        if os.path.exists(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')):
+            imgs_batches.append((batch, os.listdir(os.path.join(img_dir, batch))))  
     imgs_batches = [[(i[0], j) for j in i[1]] for i in imgs_batches]
     imgs_batches = [i for j in imgs_batches for i in j]
     
@@ -277,34 +288,27 @@ def data_split_images(
     train_amount = round(data_split[0]*img_count)
     val_amount = round(data_split[1]*img_count)
     test_amount = img_count - train_amount - val_amount
+
+    slicing = [
+        ('train', (None, train_amount)),
+        ('val', (train_amount,train_amount+val_amount)),
+        ('test', (val_amount+train_amount, None))
+    ]
     
     print('Copying images')
-    # i = (batch_name, image_name)
-    for i in imgs_batches[:train_amount]:
-        shutil.copy(
-            os.path.join(ROOT_DIR, 'data', 'images', i[0], i[1]),
-            os.path.join(ROOT_DIR, 'data', 'images', 'train')
-        )
-    
-    for i in imgs_batches[train_amount:val_amount+train_amount]:
-        shutil.copy(
-            os.path.join(ROOT_DIR, 'data', 'images', i[0], i[1]),
-            os.path.join(ROOT_DIR, 'data', 'images', 'val')
-        )
-
-    for i in imgs_batches[val_amount+train_amount:]:
-        shutil.copy(
-            os.path.join(ROOT_DIR, 'data', 'images', i[0], i[1]),
-            os.path.join(ROOT_DIR, 'data', 'images', 'test')
-        )
+    for sl in slicing:
+        for i in imgs_batches[sl[1][0]:sl[1][1]]: # i = (batch_name, image_name)
+            shutil.copy(
+                os.path.join(img_dir, i[0], i[1]),
+                os.path.join(img_dir, sl[0])
+            )
 
     print('Checking image counts')
     check_count_list = [(train_amount, 'train'), (val_amount, 'val'), (test_amount, 'test')]
     for i,j in check_count_list:
-        folder_img_count = len([i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images', j))])
+        folder_img_count = len([i for i in os.listdir(os.path.join(img_dir, j))])
         if i != folder_img_count:
-            print('Calculated amount of {} images, {}, is not equal to the acutal amount of images, {}, in the destinated folder'.format(j, i, folder_img_count))
-            raise ValueError
+            raise IncorrectDataSplit(f'Calculated amount of {j} images, {i}, is not equal to the acutal amount of images, {folder_img_count}, in the destinated folder')
 
     return None
 
@@ -318,30 +322,25 @@ def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
     ' instead of ", and ' is no .json. It work with a .replace when reading the files.
     But it can better be fixed here.
     """
+    img_dir = os.path.join(ROOT_DIR, 'data', 'images')
+    ann_dir = os.path.join(ROOT_DIR, 'data', 'annotations')
+
     rows = []
     for batch in batches:
-        with open(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')) as f:
-            rows += [json.loads(l) for l in f.readlines()]
-    
-    train_imgs = os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'train'))
-    val_imgs = os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'val'))
-    test_imgs = os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'test'))
-    
+        try:
+            with open(os.path.join(ann_dir, batch+'.ndjson')) as f:
+                rows += [json.loads(l) for l in f.readlines()]
+        except FileNotFoundError:
+            print('{}.ndjson not found. Skipping'.format(batch))
+
     print('Creating and writing annotation files')
-    with open(os.path.join(ROOT_DIR, 'data', 'annotations', 'train.ndjson'), "w+") as f:
-        for row in rows:
-            if row['data_row']['external_id'] in train_imgs:
-                f.write(str(row)+'\n')
-                
-    with open(os.path.join(ROOT_DIR, 'data', 'annotations', 'val.ndjson'), "w+") as f:
-        for row in rows:
-            if row['data_row']['external_id'] in val_imgs:
-                f.write(str(row)+'\n')
-    
-    with open(os.path.join(ROOT_DIR, 'data', 'annotations', 'test.ndjson'), "w+") as f:
-        for row in rows:
-            if row['data_row']['external_id'] in test_imgs:
-                f.write(str(row)+'\n')
+    for ds in data_sets:
+        imgs = os.listdir(os.path.join(img_dir, ds))
+
+        with open(os.path.join(ann_dir, ds+'.ndjson'), "w+") as f:
+            for row in rows:
+                if row['data_row']['external_id'] in imgs:
+                    f.write(str(row)+'\n')
 
     return None
 

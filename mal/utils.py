@@ -7,6 +7,7 @@ import json
 from skimage.measure import find_contours
 from matplotlib import patches
 from mrcnn import utils
+from bep.exceptions import DirectoryAlreadyExists
 
 def load_image(path: str):
     """Load a specified image and return a [H,W,3] Numpy array."""
@@ -122,8 +123,7 @@ def create_annotations_folder(data: str, ROOT_DIR: str, overwrite: bool=False) -
         os.makedirs(annotations_folder)
         print(f"Folder '{annotations_folder}' created.")
     elif not overwrite:
-        print(f"Folder: '{annotations_folder}' already exists, set 'overwrite' to True if you want to overwrite the stored annotations.")
-        raise AssertionError
+        raise DirectoryAlreadyExists("Folder: '{annotations_folder}' already exists, set 'overwrite' to True if you want to overwrite the stored annotations.")
     else:
         print(f"Folder: '{annotations_folder}' already exists, overwriting..")
 
