@@ -42,7 +42,7 @@ from mrcnn import model as modellib
 
 tf.random.set_seed(42)
 
-BATCH_SIZE = 2
+BATCH_SIZE = 8
 
 #--------------------------------------------------------------#
 #                         SETUP GPU                            #
