@@ -236,7 +236,7 @@ def train_model(
             epochs=30,
             layers='heads',
             augmentation=augmentation,
-            custom_callbacks=[mean_average_precision_callback],
+            # custom_callbacks=[mean_average_precision_callback],
         )
 
     if intensity >= 2:    
@@ -250,7 +250,7 @@ def train_model(
             epochs=60,
             layers='4+',
             augmentation=augmentation,
-            custom_callbacks=[mean_average_precision_callback],
+            # custom_callbacks=[mean_average_precision_callback],
         )
     
     if intensity >= 3:
@@ -264,7 +264,7 @@ def train_model(
             epochs=90,
             layers='all',
             augmentation=augmentation,
-            custom_callbacks=[mean_average_precision_callback],
+            # custom_callbacks=[mean_average_precision_callback],
         )
     
     if intensity >= 4:
@@ -276,7 +276,7 @@ def train_model(
             epochs=120,
             layers='all',
             augmentation=augmentation,
-            custom_callbacks=[mean_average_precision_callback],
+            # custom_callbacks=[mean_average_precision_callback],
         )
 
     notify('Done training')
