@@ -217,13 +217,13 @@ def train_model(
     ])
     '''
 
-    mean_average_precision_callback = MeanAveragePrecisionCallback(
-        model,
-        model_inference,
-        dataset_val,
-        calculate_map_at_every_X_epoch=5,
-        verbose=1
-    )
+    # mean_average_precision_callback = MeanAveragePrecisionCallback(
+    #     model,
+    #     model_inference,
+    #     dataset_val,
+    #     calculate_map_at_every_X_epoch=5,
+    #     verbose=1
+    # )
 
 
     if intensity >= 1:
