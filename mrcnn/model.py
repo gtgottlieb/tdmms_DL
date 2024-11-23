@@ -2057,7 +2057,7 @@ class MaskRCNN(object):
         #     model = ParallelModel(model, config.GPU_COUNT)
 
         return model
-
+    
     def find_last(self):
         """Finds the last checkpoint file of the last trained model in the
         model directory.
@@ -2078,7 +2078,7 @@ class MaskRCNN(object):
         dir_name = os.path.join(self.model_dir, dir_names[-1])
         # Find the last checkpoint
         checkpoints = next(os.walk(dir_name))[2]
-        checkpoints = filter(lambda f: f.startswith("mask_rcnn"), checkpoints)
+        checkpoints = filter(lambda f: f.endswith(".h5"), checkpoints)
         checkpoints = sorted(checkpoints)
         if not checkpoints:
             import errno

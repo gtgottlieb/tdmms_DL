@@ -91,7 +91,7 @@ class TrainingConfig(CocoConfig):
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
         self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = self.CHECKPOINT_NAME[:-1]
+        self.NAME = f'nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}'
 
 class InferenceConfig(CocoConfig):
     GPU_COUNT = 1
@@ -228,7 +228,7 @@ def train_model(
 
     if intensity >= 1:
         # Training - Stage 1
-        notify('Training network heads {}'.format(config.CHECKPOINT_NAME[:-1]))
+        notify('Training network heads')
         model.train(
             dataset_train,
             dataset_val,
@@ -242,7 +242,7 @@ def train_model(
     if intensity >= 2:    
         # Training - Stage 2
         # Finetune layers from ResNet stage 4 and up
-        notify('Fine tune Resnet stage 4 and up {}'.format(config.CHECKPOINT_NAME[:-1]))
+        notify('Fine tune Resnet stage 4 and up')
         model.train(
             dataset_train,
             dataset_val,
@@ -256,7 +256,7 @@ def train_model(
     if intensity >= 3:
         # Training - Stage 3
         # Fine tune all layers
-        notify('Fine tune all layers {}'.format(config.CHECKPOINT_NAME[:-1]))
+        notify('Fine tune all layers')
         model.train(
             dataset_train,
             dataset_val,
@@ -267,9 +267,8 @@ def train_model(
             custom_callbacks=[mean_average_precision_callback],
         )
     
-    notify('Reduce LR and further tune all layers {}'.format(config.CHECKPOINT_NAME[:-1]))
     if intensity >= 4:
-        notify('Reduce LR and further tune all layers {}'.format(config.CHECKPOINT_NAME[:-1]))
+        notify('Reduce LR and further tune all layers')
         model.train(
             dataset_train,
             dataset_val,
