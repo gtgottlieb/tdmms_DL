@@ -41,7 +41,7 @@ from mrcnn import model as modellib
 
 tf.random.set_seed(42)
 
-BATCH_SIZE = 8
+BATCH_SIZE = 2
 
 #--------------------------------------------------------------#
 #                         SETUP GPU                            #
@@ -72,6 +72,14 @@ class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = BATCH_SIZE
 
+    LOSS_WEIGHTS = {
+        "rpn_class_loss": 1.,
+        "rpn_bbox_loss": 1.,
+        "mrcnn_class_loss": 1,
+        "mrcnn_bbox_loss": 1.,
+        "mrcnn_mask_loss": 1.
+    }
+
     def __init__(
         self,
         train_images: int,
@@ -89,8 +97,8 @@ class TrainingConfig(CocoConfig):
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_loss_eq_{intensity}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_{starting_material.lower()}_loss_eq_{intensity}_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     reload_data_dir: bool = False,
