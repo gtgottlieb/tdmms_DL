@@ -71,7 +71,6 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
 
 class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
-    IMAGES_PER_GPU = BATCH_SIZE
 
     def __init__(
         self,
@@ -80,8 +79,11 @@ class TrainingConfig(CocoConfig):
         starting_material: str,
         intensity: int,
         last_layers: bool,
+        images_per_gpu: int,
     ):
         super().__init__()
+        self.IMAGES_PER_GPU = images_per_gpu
+
         batch_size = self.GPU_COUNT * self.IMAGES_PER_GPU
         total_image_count = train_images + val_images
         self.STEPS_PER_EPOCH = train_images / batch_size
@@ -102,7 +104,8 @@ def train_model(
     reload_data_dir: bool = False,
     starting_material: str = 'MoS2',
     intensity: int = 4,
-    last_layers: bool = False
+    last_layers: bool = False,
+    images_per_gpu: int = 2,
 ):
     """
     Function to train MRCNN.
@@ -152,6 +155,7 @@ def train_model(
         starting_material,
         intensity,
         last_layers,
+        images_per_gpu,
     )
     config.display()
     notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
@@ -315,6 +319,13 @@ if __name__ == '__main__':
         default=False,
         help='True or False'
     )
+
+    parser.add_argument(
+        '--images_per_gpu',
+        required=False,
+        default=2,
+        help='Determines batchsize'
+    )
     
     args = parser.parse_args()
 
@@ -323,7 +334,8 @@ if __name__ == '__main__':
             args.reload_data_dir,
             args.starting_material,
             int(args.intensity),
-            args.last_layers
+            args.last_layers,
+            int(args.images_per_gpu)
         )
     except Exception as e:
         logging.error("An exception occurred", exc_info=True)
