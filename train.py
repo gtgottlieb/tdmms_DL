@@ -29,7 +29,6 @@ from bep.utils import (
     load_train_val_datasets,
     load_tdmms_weights
 )
-from bep.callbacks import MeanAveragePrecisionCallback
 from notifications.discord import notify
 
 ROOT_DIR = os.path.abspath("../")
@@ -71,6 +70,7 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
 
 class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
+    IMAGES_PER_GPU = BATCH_SIZE
 
     def __init__(
         self,
@@ -79,11 +79,8 @@ class TrainingConfig(CocoConfig):
         starting_material: str,
         intensity: int,
         last_layers: bool,
-        images_per_gpu: int,
     ):
         super().__init__()
-        self.IMAGES_PER_GPU = images_per_gpu
-
         batch_size = self.GPU_COUNT * self.IMAGES_PER_GPU
         total_image_count = train_images + val_images
         self.STEPS_PER_EPOCH = train_images / batch_size
@@ -95,17 +92,11 @@ class TrainingConfig(CocoConfig):
         self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}_'
         self.NAME = f'nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}'
 
-class InferenceConfig(CocoConfig):
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-    NAME = 'inference'
-
 def train_model(
     reload_data_dir: bool = False,
     starting_material: str = 'MoS2',
     intensity: int = 4,
     last_layers: bool = False,
-    images_per_gpu: int = 2,
 ):
     """
     Function to train MRCNN.
@@ -155,7 +146,6 @@ def train_model(
         starting_material,
         intensity,
         last_layers,
-        images_per_gpu,
     )
     config.display()
     notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
@@ -175,14 +165,7 @@ def train_model(
         model.load_weights(MODEL_PATH, by_name=True)
     else:
         model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
-
-    inference_config = InferenceConfig()
-    model_inference = modellib.MaskRCNN(
-        mode="inference",
-        config=inference_config,
-        model_dir=DEFAULT_LOGS_DIR
-    )
-
+    
     augmentation = iaa.SomeOf((0, None), [
         iaa.Fliplr(0.5),
         iaa.Flipud(0.5),
@@ -319,13 +302,6 @@ if __name__ == '__main__':
         default=False,
         help='True or False'
     )
-
-    parser.add_argument(
-        '--images_per_gpu',
-        required=False,
-        default=2,
-        help='Determines batchsize'
-    )
     
     args = parser.parse_args()
 
@@ -335,7 +311,6 @@ if __name__ == '__main__':
             args.starting_material,
             int(args.intensity),
             args.last_layers,
-            int(args.images_per_gpu)
         )
     except Exception as e:
         logging.error("An exception occurred", exc_info=True)
