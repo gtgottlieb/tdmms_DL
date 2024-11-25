@@ -71,7 +71,13 @@ class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = BATCH_SIZE
 
-    LEARNING_RATE = 0.001*10
+    LOSS_WEIGHTS = {
+        "rpn_class_loss": 1.5,
+        "rpn_bbox_loss": 1.,
+        "mrcnn_class_loss": 0.6,
+        "mrcnn_bbox_loss": 1.,
+        "mrcnn_mask_loss": 1.
+    }
 
     def __init__(
         self,
