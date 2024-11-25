@@ -7,7 +7,6 @@ How to run from a terminal:
         with optional arguments:   
             --reload_data_dir <True or False> 
             --starting_material <MoS2, WTe2, Graphene or BN>
-            --intensity <1, 2, 3 or 4>
             --last_layers <True or False>
 """
 
@@ -72,20 +71,13 @@ class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = BATCH_SIZE
 
-    LOSS_WEIGHTS = {
-        "rpn_class_loss": 1.,
-        "rpn_bbox_loss": 1.,
-        "mrcnn_class_loss": 1.,
-        "mrcnn_bbox_loss": 1.,
-        "mrcnn_mask_loss": 1.
-    }
+    LEARNING_RATE = 0.001/10
 
     def __init__(
         self,
         train_images: int,
         val_images: int,
         starting_material: str,
-        intensity: int,
         last_layers: bool,
     ):
         super().__init__()
@@ -93,17 +85,16 @@ class TrainingConfig(CocoConfig):
         total_image_count = train_images + val_images
         self.STEPS_PER_EPOCH = train_images / batch_size
         # Checkpoint name format:
-        # <datetime now>_<fine-tuned on>_<fine-tuned from>_<images in train and validation set>_<intensity>_<batch size>_<epoch amount>
+        # <datetime now>_<fine-tuned on>_<fine-tuned from>_<images in train and validation set>_<batch size>_<epoch amount>
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_loss_eq_{intensity}_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_{starting_material.lower()}_loss_eq_{intensity}_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_div_lr_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_{starting_material.lower()}_div_lr_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     reload_data_dir: bool = False,
     starting_material: str = 'MoS2',
-    intensity: int = 4,
     last_layers: bool = False,
 ):
     """
@@ -119,11 +110,6 @@ def train_model(
         - computer: if the data directories should be reloaded
         - starting_material: Which weights will be used for fine-tuning on NbSe2.
                     MoS2, BN, Graphene or WTe2
-        - intensity: 1, 2, 3 or 4. Determines the amount of training.
-            1: Only network heads
-            2: adds ResNet stage 4 and up
-            3: adds all layers
-            4: add all layers again with a lower learning rate
         - last_layers: True or False. Determines if the last layers are trained or not.
             Requires a matching amount of classes between transfer and new model.
     
@@ -152,7 +138,6 @@ def train_model(
         len(dataset_train.image_ids),
         len(dataset_val.image_ids),
         starting_material,
-        intensity,
         last_layers,
     )
     config.display()
@@ -212,67 +197,51 @@ def train_model(
     ])
     '''
 
-    # mean_average_precision_callback = MeanAveragePrecisionCallback(
-    #     model,
-    #     model_inference,
-    #     dataset_val,
-    #     calculate_map_at_every_X_epoch=5,
-    #     verbose=1
-    # )
+    # Training - Stage 1
+    notify('Training network heads')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE,
+        epochs=30,
+        layers='heads',
+        augmentation=augmentation
+    )
 
-
-    if intensity >= 1:
-        # Training - Stage 1
-        notify('Training network heads')
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE,
-            epochs=30,
-            layers='heads',
-            augmentation=augmentation,
-            # custom_callbacks=[mean_average_precision_callback],
-        )
-
-    if intensity >= 2:    
-        # Training - Stage 2
-        # Finetune layers from ResNet stage 4 and up
-        notify('Fine tune Resnet stage 4 and up')
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE/10,
-            epochs=60,
-            layers='4+',
-            augmentation=augmentation,
-            # custom_callbacks=[mean_average_precision_callback],
-        )
+    # Training - Stage 2
+    # Finetune layers from ResNet stage 4 and up
+    notify('Fine tune Resnet stage 4 and up')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE/10,
+        epochs=60,
+        layers='4+',
+        augmentation=augmentation
+    )
     
-    if intensity >= 3:
-        # Training - Stage 3
-        # Fine tune all layers
-        notify('Fine tune all layers')
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE /10,
-            epochs=90,
-            layers='all',
-            augmentation=augmentation,
-            # custom_callbacks=[mean_average_precision_callback],
-        )
     
-    if intensity >= 4:
-        notify('Reduce LR and further tune all layers')
-        model.train(
-            dataset_train,
-            dataset_val,
-            learning_rate=config.LEARNING_RATE /100,
-            epochs=120,
-            layers='all',
-            augmentation=augmentation,
-            # custom_callbacks=[mean_average_precision_callback],
-        )
+    # Training - Stage 3
+    # Fine tune all layers
+    notify('Fine tune all layers')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE /10,
+        epochs=90,
+        layers='all',
+        augmentation=augmentation
+    )
+    
+    notify('Reduce LR and further tune all layers')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE /100,
+        epochs=120,
+        layers='all',
+        augmentation=augmentation
+    )
 
     notify('Done training')
 
@@ -298,13 +267,6 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--intensity',
-        required=False,
-        default=1,
-        help='Intensity 1, 2, 3 or 4'
-    )
-
-    parser.add_argument(
         '--last_layers',
         required=False,
         default=False,
@@ -317,7 +279,6 @@ if __name__ == '__main__':
         train_model(
             args.reload_data_dir,
             args.starting_material,
-            int(args.intensity),
             args.last_layers,
         )
     except Exception as e:
