@@ -71,7 +71,7 @@ class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = BATCH_SIZE
 
-    LEARNING_RATE = 0.001/10
+    LEARNING_RATE = 0.001*10
 
     def __init__(
         self,
@@ -89,8 +89,8 @@ class TrainingConfig(CocoConfig):
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_div_lr_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_{starting_material.lower()}_div_lr_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_mult_lr_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_{starting_material.lower()}_mult_lr_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     reload_data_dir: bool = False,
