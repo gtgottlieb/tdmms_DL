@@ -71,13 +71,7 @@ class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = BATCH_SIZE
 
-    LOSS_WEIGHTS = {
-        "rpn_class_loss": 1.5,
-        "rpn_bbox_loss": 1.,
-        "mrcnn_class_loss": 0.6,
-        "mrcnn_bbox_loss": 1.,
-        "mrcnn_mask_loss": 1.
-    }
+    LEARNING_MOMENTUM = 0.95
 
     def __init__(
         self,
@@ -95,8 +89,8 @@ class TrainingConfig(CocoConfig):
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_rpn_class_loss_inc_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_{starting_material.lower()}_rpn_class_loss_inc_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_momentum_inc_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_{starting_material.lower()}_momentum_inc_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     reload_data_dir: bool = False,
