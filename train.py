@@ -87,8 +87,8 @@ class TrainingConfig(CocoConfig):
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_momentum_dec_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_{starting_material.lower()}_momentum_dec_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     reload_data_dir: bool = False,
