@@ -71,8 +71,6 @@ class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = BATCH_SIZE
 
-    LEARNING_MOMENTUM = 0.8
-
     def __init__(
         self,
         train_images: int,

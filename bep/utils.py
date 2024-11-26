@@ -207,9 +207,12 @@ def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float], use_
     images_for_training = []
     if not use_bs:
         images_for_training = get_images_for_training(ROOT_DIR, batches, 15)
+    else:
+        if os.path.isdir(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit')):
+            split_images = list(set([i.split('_split')[0] for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit'))]))
     
     reset_dirs(ROOT_DIR, data_sets)
-    data_split_images(batches, ROOT_DIR, data_split, images_for_training, data_sets)
+    data_split_images(batches, ROOT_DIR, data_split, images_for_training, data_sets, split_images)
     data_split_annotations(batches, ROOT_DIR, data_sets)
 
     return None
@@ -270,7 +273,8 @@ def data_split_images(
     ROOT_DIR: str,
     data_split: Tuple[float, float, float],
     images_for_training: List[str],
-    data_sets: list
+    data_sets: List[str],
+    split_images: List[str]
 ) -> None:
     """
     Function to load the images from all found batches and split the 
@@ -293,6 +297,7 @@ def data_split_images(
             imgs_batches.append((batch, os.listdir(os.path.join(img_dir, batch))))  
     imgs_batches = [[(i[0], j) for j in i[1]] for i in imgs_batches]
     imgs_batches = [i for j in imgs_batches for i in j]
+    imgs_batches = [i for i in imgs_batches if i[1].split('.')[0] not in split_images]
     
     random.shuffle(imgs_batches)
 
