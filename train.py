@@ -127,9 +127,9 @@ def train_model(
     """
 
     if reload_data_dir:
-        create_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
+        create_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
     else:
-        check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
+        check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
     dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR, use_bs=True)
 
     config = TrainingConfig(
