@@ -11,6 +11,9 @@ from pycocotools.coco import COCO
 from mrcnn.utils import Dataset
 from pycocotools import mask as maskUtils
 
+LABELBOX_NBSE2_SIO2_ID = 'cm167pqz802tq07023jfr2abh'
+
+
 class NullWriter:
     def write(self, message):
         pass
@@ -92,7 +95,7 @@ class bepDataset(Dataset):
         }
         
         for row in rows:
-            for label in list(row['projects'].values())[0]['labels']:
+            for label in row['projects'][LABELBOX_NBSE2_SIO2_ID]['labels']:
                 for obj in label['annotations']['objects']:                        
                     segmentation = self.generate_segmentation(obj['polygon'])
                     bbox = self.generate_bbox(obj['polygon'])

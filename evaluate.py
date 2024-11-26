@@ -95,7 +95,7 @@ def evaluate_dataset(material: str) -> None:
                 test/
     """
     if material == 'NbSe2':
-        dataset_train, dataset_val, dataset_test = load_train_val_datasets(ROOT_DIR)
+        dataset_train, dataset_val, dataset_test = load_train_val_datasets(ROOT_DIR, use_bs=True)
     else:
         dataset_train, dataset_val = load_train_val_datasets_tdmms(ROOT_DIR, material)
         dataset_test = None

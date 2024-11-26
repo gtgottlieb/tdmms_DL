@@ -18,8 +18,9 @@ from mrcnn.model import log
 
 from typing import Tuple, Union, List
 
+LABELBOX_NBSE2_SIO2_ID = 'cm167pqz802tq07023jfr2abh'
+
 data_types = ['images', 'annotations']
-data_sets = ['train', 'val', 'test']
 
 #-------------------------------------------------------------------------------------------#
 #                                                                                           #
@@ -44,7 +45,7 @@ Set by running: os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #                                                                                           #
 #-------------------------------------------------------------------------------------------#
 
-def load_train_val_datasets(ROOT_DIR: str, load_split: bool = True) -> Tuple[bepDataset, bepDataset]:
+def load_train_val_datasets(ROOT_DIR: str, use_bs: bool = False) -> Tuple[bepDataset, bepDataset]:
     """
     Function to load train and validation datasets of the BEP data.
     
@@ -60,20 +61,20 @@ def load_train_val_datasets(ROOT_DIR: str, load_split: bool = True) -> Tuple[bep
                 val/
                 test/
     """
-    
+    data_sets = ['train', 'val', 'test']
+    if use_bs:
+        data_sets = ['train_bs', 'val_bs', 'test_bs']
 
     dataset_train = bepDataset()
-    dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), 'train', reload_annotations=True)
-    if load_split:
-        dataset_train.load_split(os.path.join(ROOT_DIR, 'data'))
+    dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), data_sets[0], reload_annotations=True)
     dataset_train.prepare()
 
     dataset_val = bepDataset()
-    dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), 'val', reload_annotations=True)
+    dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), data_sets[1], reload_annotations=True)
     dataset_val.prepare()
 
     dataset_test = bepDataset()
-    dataset_test.load_dir(os.path.join(ROOT_DIR, 'data'), 'test', reload_annotations=True)
+    dataset_test.load_dir(os.path.join(ROOT_DIR, 'data'), data_sets[2], reload_annotations=True)
     dataset_test.prepare()
 
     return dataset_train, dataset_val, dataset_test
@@ -131,7 +132,7 @@ def load_tdmms_weights(material: str) -> str:
 #-------------------------------------------------------------------------------------------#
 
 
-def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float]) -> None:
+def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float], use_bs: bool) -> None:
     """Function to check if the directory is setup correctly. This 
     means checking for train and validation folders/files.
 
@@ -165,7 +166,11 @@ def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float]) -> None
         - data_split: determines the train validation test split
                     (train size, validation size, test size)
                     For example: (0.8, 0.1, 0.1)
-    """  
+    """ 
+    data_sets = ['train', 'val', 'test']
+    if use_bs:
+        data_sets = ['train_bs', 'val_bs', 'test_bs']
+
     for dt in data_types:
         for ds in data_sets:
             extension = ''
@@ -182,27 +187,34 @@ def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float]) -> None
 
     return None
 
-def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float]) -> None:
+def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float], use_bs: bool = True) -> None:
     """Function to reset and create train and validation directories."""
     
     print('Creating directories from batches')
 
+    data_sets = ['train', 'val', 'test']
+    if use_bs:
+        print('Using batch split data')
+        data_sets = ['train_bs', 'val_bs', 'test_bs']
+
     batches = [
         i 
         for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images'))
-        if ('batch' in  i and i != 'batchsplit')
+        if ('batch' in  i and (i != 'batchsplit' or use_bs))
     ]
     print('Found batches:',', '.join(batches))
 
-    images_for_training = get_images_for_training(ROOT_DIR, batches, 15)
+    images_for_training = []
+    if not use_bs:
+        images_for_training = get_images_for_training(ROOT_DIR, batches, 15)
     
-    reset_dirs(ROOT_DIR)
-    data_split_images(batches, ROOT_DIR, data_split, images_for_training)
-    data_split_annotations(batches, ROOT_DIR)
+    reset_dirs(ROOT_DIR, data_sets)
+    data_split_images(batches, ROOT_DIR, data_split, images_for_training, data_sets)
+    data_split_annotations(batches, ROOT_DIR, data_sets)
 
     return None
     
-def reset_dirs(ROOT_DIR: str) -> None:
+def reset_dirs(ROOT_DIR: str, data_sets: list) -> None:
     """Function to reset the image and annotation directories of the
     train and validation sets."""
     # Reset image directory
@@ -258,6 +270,7 @@ def data_split_images(
     ROOT_DIR: str,
     data_split: Tuple[float, float, float],
     images_for_training: List[str],
+    data_sets: list
 ) -> None:
     """
     Function to load the images from all found batches and split the 
@@ -268,19 +281,24 @@ def data_split_images(
         - train_size: size of the train split, also determines the val split
     """
     img_dir = os.path.join(ROOT_DIR, 'data', 'images')
+    ann_dir = os.path.join(ROOT_DIR, 'data', 'annotations')
 
     imgs_batches = []
     
     for batch in batches:
-        if os.path.exists(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')):
+        if (
+            os.path.exists(os.path.join(ann_dir, batch+'.ndjson')) or
+            os.path.exists(os.path.join(ann_dir, batch+'.json'))
+        ):
             imgs_batches.append((batch, os.listdir(os.path.join(img_dir, batch))))  
     imgs_batches = [[(i[0], j) for j in i[1]] for i in imgs_batches]
     imgs_batches = [i for j in imgs_batches for i in j]
     
     random.shuffle(imgs_batches)
 
-    for i in images_for_training:
-        imgs_batches.insert(0, imgs_batches.pop(imgs_batches.index(i)))
+    if images_for_training:
+        for i in images_for_training:
+            imgs_batches.insert(0, imgs_batches.pop(imgs_batches.index(i)))
     
     img_count = len(imgs_batches)    
     print(f'Total image count: {img_count}')
@@ -290,9 +308,9 @@ def data_split_images(
     test_amount = img_count - train_amount - val_amount
 
     slicing = [
-        ('train', (None, train_amount)),
-        ('val', (train_amount,train_amount+val_amount)),
-        ('test', (val_amount+train_amount, None))
+        (data_sets[0], (None, train_amount)),
+        (data_sets[1], (train_amount,train_amount+val_amount)),
+        (data_sets[2], (val_amount+train_amount, None))
     ]
     
     print('Copying images')
@@ -304,7 +322,7 @@ def data_split_images(
             )
 
     print('Checking image counts')
-    check_count_list = [(train_amount, 'train'), (val_amount, 'val'), (test_amount, 'test')]
+    check_count_list = [(train_amount, data_sets[0]), (val_amount, data_sets[1]), (test_amount, data_sets[2])]
     for i,j in check_count_list:
         folder_img_count = len([i for i in os.listdir(os.path.join(img_dir, j))])
         if i != folder_img_count:
@@ -312,7 +330,7 @@ def data_split_images(
 
     return None
 
-def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
+def data_split_annotations(batches: list, ROOT_DIR: str, data_sets: list) -> None:
     """Function to load the annotations from all found batches and split the 
     annotations into a train and validation set. Uses the already created 
     train/ val/ and test/ folders in images/ to know which annotations belongs
@@ -327,11 +345,22 @@ def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
 
     rows = []
     for batch in batches:
-        try:
+        if (
+            (os.path.exists(os.path.join(ann_dir, batch+'.json')) and
+            not os.path.exists(os.path.join(ann_dir, batch+'.ndjson')))
+            or batch == 'batchsplit'
+        ):
+            convert_coco_to_ndjson(
+                os.path.join(ann_dir, batch+'.json'),
+                os.path.join(ann_dir, batch+'.ndjson')
+            )
+
+        if (
+            os.path.exists(os.path.join(ann_dir, batch+'.ndjson'))
+        ):
             with open(os.path.join(ann_dir, batch+'.ndjson')) as f:
                 rows += [json.loads(l) for l in f.readlines()]
-        except FileNotFoundError:
-            print('{}.ndjson not found. Skipping'.format(batch))
+
 
     print('Creating and writing annotation files')
     for ds in data_sets:
@@ -341,6 +370,90 @@ def data_split_annotations(batches: list, ROOT_DIR: str) -> None:
             for row in rows:
                 if row['data_row']['external_id'] in imgs:
                     f.write(str(row)+'\n')
+
+    return None
+
+#-------------------------------------------------------------------------------------------#
+#                                                                                           #
+#                                      COCO TO LABELBOX                                     #
+#                                                                                           #
+#-------------------------------------------------------------------------------------------#
+
+
+def convert_coco_to_ndjson(coco_file_path: str, ndjson_file_path: str) -> None:
+    """
+    Convert a COCO format JSON file to NDJSON format.
+    
+    Parameters:
+        coco_file_path (str): Path to the input COCO JSON file.
+        ndjson_file_path (str): Path to the output NDJSON file.
+    """
+
+    class_variable_mapping = {
+        'mono': 1,  # 1 layer           / 0.7 nm
+        'few': 2,   # 2 - 10 layers     / 1.4 - 7 nm 
+        'thick': 3  # 10 - 40 layers    / 7 - 28 nm
+    }
+
+    class_variable_mapping_inverse = {v: k for k, v in class_variable_mapping.items()}
+
+    with open(coco_file_path, 'r') as f:
+        coco_data = json.load(f)
+    
+    images = {image['id']: image for image in coco_data['images']}
+    
+    grouped_annotations = {}
+    for annotation in coco_data['annotations']:
+        image_id = annotation['image_id']
+        if image_id not in grouped_annotations:
+            grouped_annotations[image_id] = []
+        grouped_annotations[image_id].append(annotation)
+
+    with open(ndjson_file_path, 'w+') as ndjson_file:
+        for image_id, image_data in images.items():
+            data_row = {
+                "id": image_data['id'],
+                "external_id": image_data['file_name'],
+            }
+            
+            media_attributes = {
+                "height": image_data['height'],
+                "width": image_data['width'],
+                "asset_type": "image",
+                "mime_type": "image/png",
+                "exif_rotation": "1"
+            }
+            
+            project_data = {
+                LABELBOX_NBSE2_SIO2_ID: {
+                    "labels": [{
+                        'annotations': {
+                            'classifications': [],
+                            'objects': [
+                                {
+                                    "annotation_kind": "ImagePolygon",
+                                    "name": class_variable_mapping_inverse[annotation['category_id']].title(),
+                                    "id": annotation['id'],
+                                    "polygon": [
+                                        {"x": annotation['segmentation'][0][i], "y": annotation['segmentation'][0][i + 1]}
+                                        for i in range(0, len(annotation['segmentation'][0]), 2)
+                                    ],
+                                    "value": class_variable_mapping_inverse[annotation['category_id']].lower()
+                                }
+                                for annotation in grouped_annotations[image_data['file_name']]
+                            ]
+                        }
+                    }]
+                }
+            }
+            
+            ndjson_record = {
+                "data_row": data_row,
+                "media_attributes": media_attributes,
+                "projects": project_data
+            }
+            
+            ndjson_file.write(json.dumps(ndjson_record) + '\n')
 
     return None
 

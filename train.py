@@ -132,7 +132,7 @@ def train_model(
         create_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
     else:
         check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
-    dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR)
+    dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR, use_bs=True)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),

@@ -33,7 +33,7 @@ BACKGROUND_IMAGE_DIRECTORY = os.path.join(ROOT_DIR, 'data', 'backgrounds', 'mark
 def split_images(
     annotation_threshold: int = 15,
     border: int = 15,
-    log_iteration: bool = False
+    log_iteration: bool = False,
 ) -> None:
     """
     The function that splits images into multiple images.
@@ -51,7 +51,7 @@ def split_images(
 
     utils.reset_image_dir(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit'))
 
-    data, _, _ = load_train_val_datasets(ROOT_DIR, load_split=False)
+    data, _, _ = load_train_val_datasets(ROOT_DIR, use_bs=False)
 
     images = utils.get_images_to_split_from_dataset(data.image_info, annotation_threshold)
 
