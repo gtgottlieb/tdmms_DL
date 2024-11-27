@@ -2349,7 +2349,7 @@ class MaskRCNN(object):
         # else:
         #     workers = multiprocessing.cpu_count()
 
-        workers = 1
+        workers = 0
 
         self.keras_model.fit(
             train_generator,
