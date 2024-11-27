@@ -5,7 +5,6 @@ How to run from a terminal:
     1. activate your environment
     2. run: $ py train.py 
         with optional arguments:   
-            --reload_data_dir <True or False> 
             --starting_material <MoS2, WTe2, Graphene or BN>
             --last_layers <True or False>
 """
@@ -24,10 +23,10 @@ from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
 from bep.utils import (
     check_dir_setup, 
-    create_dir_setup,
     load_train_val_datasets,
     load_tdmms_weights
 )
+from bep.dataset import bepDataset
 from notifications.discord import notify
 
 ROOT_DIR = os.path.abspath("../")
@@ -82,16 +81,13 @@ class TrainingConfig(CocoConfig):
         batch_size = self.GPU_COUNT * self.IMAGES_PER_GPU
         total_image_count = train_images + val_images
         self.STEPS_PER_EPOCH = train_images / batch_size
-        # Checkpoint name format:
-        # <datetime now>_<fine-tuned on>_<fine-tuned from>_<images in train and validation set>_<batch size>_<epoch amount>
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_stages_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_stages_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
-    reload_data_dir: bool = False,
     starting_material: str = 'MoS2',
     last_layers: bool = False,
 ):
@@ -126,10 +122,7 @@ def train_model(
             <material>_mask_rcnn_tdm_120.h5
     """
 
-    if reload_data_dir:
-        create_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
-    else:
-        check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
+    check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
     dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR, use_bs=True)
 
     config = TrainingConfig(
@@ -139,7 +132,6 @@ def train_model(
         last_layers,
     )
     config.display()
-    notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
 
     model = modellib.MaskRCNN(
         mode="training",
@@ -148,15 +140,22 @@ def train_model(
     )
 
     MODEL_PATH = os.path.join(ROOT_DIR, 'weights', load_tdmms_weights(starting_material))
-
     print("Loading weights ", MODEL_PATH)
-
-    if last_layers == 'True':
-        # Amount of classes of transer model must be the same as the new model
-        model.load_weights(MODEL_PATH, by_name=True)
-    else:
-        model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+    model.load_weights(MODEL_PATH, by_name=True, exclude=[] if last_layers == 'True' else ["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
     
+    augmentation = get_augmentation()
+
+    train_bep_stages(
+        model,
+        config,
+        dataset_train,
+        dataset_val,
+        augmentation
+    )
+
+    return None
+
+def get_augmentation():
     augmentation = iaa.SomeOf((0, None), [
         iaa.Fliplr(0.5),
         iaa.Flipud(0.5),
@@ -194,6 +193,50 @@ def train_model(
                     iaa.Affine(rotate=270)])
     ])
     '''
+
+    return augmentation
+
+def train_bep_stages(
+    model: modellib.MaskRCNN,
+    config: CocoConfig,
+    dataset_train: bepDataset,
+    dataset_val: bepDataset,
+    augmentation
+) -> None:
+    notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
+
+    notify('Training network heads')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE,
+        epochs=90,
+        layers='heads',
+        augmentation=augmentation
+    )
+    
+    notify('Reduce LR and further tune all layers')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE/100,
+        epochs=120,
+        layers='all',
+        augmentation=augmentation
+    )
+
+    notify('Done training')
+
+    return None
+
+def train_tdmms_stages(
+    model: modellib.MaskRCNN,
+    config: CocoConfig,
+    dataset_train: bepDataset,
+    dataset_val: bepDataset,
+    augmentation
+) -> None:
+    notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
 
     # Training - Stage 1
     notify('Training network heads')
@@ -243,18 +286,11 @@ def train_model(
 
     notify('Done training')
 
-    return None   
+    return None
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Train model'
-    )
-
-    parser.add_argument(
-        '--reload_data_dir', 
-        required=False,
-        default=False,
-        help='False or True'
     )
 
     parser.add_argument(
@@ -275,7 +311,6 @@ if __name__ == '__main__':
 
     try:
         train_model(
-            args.reload_data_dir,
             args.starting_material,
             args.last_layers,
         )
