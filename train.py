@@ -146,7 +146,7 @@ def train_model(
     
     augmentation = get_augmentation()
 
-    train_bep_stages(
+    train_tdmms_stages(
         model,
         config,
         dataset_train,
