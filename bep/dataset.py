@@ -1,7 +1,6 @@
 """Module that creates a custom dataset to load custom data"""
 
 import os
-import sys
 import contextlib
 import json
 import cv2
@@ -12,6 +11,7 @@ from mrcnn.utils import Dataset
 from pycocotools import mask as maskUtils
 
 LABELBOX_NBSE2_SIO2_ID = 'cm167pqz802tq07023jfr2abh'
+LABELBOX_NBSE2_SIO2_EXTENDED_ID = 'cm46uxql6023s07yx92im8tt4'
 
 
 class NullWriter:
@@ -60,7 +60,7 @@ class bepDataset(Dataset):
         super().__init__()
         
         self.annotation_id = 1
-        self.image_id = 1        
+        self.image_id = 1
             
     def convert_annotations_to_coco(self, annotations_file: str, img_dir: str) -> None:
         """
@@ -94,8 +94,14 @@ class bepDataset(Dataset):
             "images": [],
         }
         
+        PROJECT_ID = LABELBOX_NBSE2_SIO2_ID
+        if 'ex' in annotations_file:
+            PROJECT_ID = LABELBOX_NBSE2_SIO2_EXTENDED_ID
+            coco_format['categories'].append({"id": 4, "name": "Massive_NbSe2"})
+            self.class_variable_mapping['massive'] = 4
+
         for row in rows:
-            for label in row['projects'][LABELBOX_NBSE2_SIO2_ID]['labels']:
+            for label in row['projects'][PROJECT_ID]['labels']:
                 for obj in label['annotations']['objects']:                        
                     segmentation = self.generate_segmentation(obj['polygon'])
                     bbox = self.generate_bbox(obj['polygon'])
@@ -139,7 +145,7 @@ class bepDataset(Dataset):
         path: str, 
         data: str,
         reload_annotations: bool = False,
-        return_coco = False
+        return_coco: bool = False,
     ):
         """"
         Function to load image directory

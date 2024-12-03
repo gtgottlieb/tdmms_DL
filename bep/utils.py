@@ -20,6 +20,7 @@ from typing import Tuple, Union, List
 
 LABELBOX_NBSE2_SIO2_ID = 'cm167pqz802tq07023jfr2abh'
 
+_data_sets = ['train', 'val', 'test']
 data_types = ['images', 'annotations']
 
 #-------------------------------------------------------------------------------------------#
@@ -45,7 +46,7 @@ Set by running: os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #                                                                                           #
 #-------------------------------------------------------------------------------------------#
 
-def load_train_val_datasets(ROOT_DIR: str, use_bs: bool = False) -> Tuple[bepDataset, bepDataset]:
+def load_train_val_datasets(ROOT_DIR: str, use_bs: bool = False, use_ex: bool = False) -> Tuple[bepDataset, bepDataset]:
     """
     Function to load train and validation datasets of the BEP data.
     
@@ -61,9 +62,12 @@ def load_train_val_datasets(ROOT_DIR: str, use_bs: bool = False) -> Tuple[bepDat
                 val/
                 test/
     """
-    data_sets = ['train', 'val', 'test']
     if use_bs:
-        data_sets = ['train_bs', 'val_bs', 'test_bs']
+        data_sets = [i+'_bs' for i in _data_sets]
+    elif use_ex:
+        data_sets = [i+'_ex' for i in _data_sets]
+    else:
+        data_sets = _data_sets
 
     dataset_train = bepDataset()
     dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), data_sets[0], reload_annotations=True)
@@ -132,7 +136,12 @@ def load_tdmms_weights(material: str) -> str:
 #-------------------------------------------------------------------------------------------#
 
 
-def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float], use_bs: bool) -> None:
+def check_dir_setup(
+    ROOT_DIR: str,
+    data_split: Tuple[float,float,float],
+    use_bs: bool = False,
+    use_ex: bool = True
+) -> None:
     """Function to check if the directory is setup correctly. This 
     means checking for train and validation folders/files.
 
@@ -167,9 +176,12 @@ def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float], use_bs:
                     (train size, validation size, test size)
                     For example: (0.8, 0.1, 0.1)
     """ 
-    data_sets = ['train', 'val', 'test']
     if use_bs:
-        data_sets = ['train_bs', 'val_bs', 'test_bs']
+        data_sets = [i+'_bs' for i in _data_sets]
+    elif use_ex:
+        data_sets = [i+'_ex' for i in _data_sets]
+    else:
+        data_sets = _data_sets
 
     for dt in data_types:
         for ds in data_sets:
@@ -187,24 +199,38 @@ def check_dir_setup(ROOT_DIR: str, data_split: Tuple[float,float,float], use_bs:
 
     return None
 
-def create_dir_setup(ROOT_DIR: str, data_split: Tuple[float, float, float], use_bs: bool = True) -> None:
+def create_dir_setup(
+    ROOT_DIR: str,
+    data_split: Tuple[float, float, float],
+    use_bs: bool = False,
+    use_ex: bool = False
+) -> None:
     """Function to reset and create train and validation directories."""
     
     print('Creating directories from batches')
 
-    data_sets = ['train', 'val', 'test']
-    if use_bs:
-        print('Using batch split data')
-        data_sets = ['train_bs', 'val_bs', 'test_bs']
+    batches = [i.split('.')[0] for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'annotations'))]
 
-    batches = [
-        i 
-        for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images'))
-        if ('batch' in  i and (i != 'batchsplit' or use_bs))
-    ]
+    if use_bs:
+        data_sets = [i+'_bs' for i in _data_sets]
+        batches = list(set([i for i in batches if 'batch' in i and 'ex' not in i]))
+    elif use_ex:
+        data_sets = [i+'_ex' for i in _data_sets]
+        batches = list(set([i for i in batches if 'batch' in i and 'ex' in i]))
+    else:
+        data_sets = _data_sets
+        batches = list(set([i for i in batches if 'batch' in i and 'ex' not in i and 'split' not in i]))
+
+    # batches = [
+    #     i 
+    #     for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images'))
+    #     if ('batch' in  i and ((i != 'batchsplit' or use_bs) or ('ex' not in i or use_ex)))
+    # ]
+
     print('Found batches:',', '.join(batches))
 
     images_for_training = []
+    split_images = []
     if not use_bs:
         images_for_training = get_images_for_training(ROOT_DIR, batches, 15)
     else:
@@ -294,7 +320,8 @@ def data_split_images(
             os.path.exists(os.path.join(ann_dir, batch+'.ndjson')) or
             os.path.exists(os.path.join(ann_dir, batch+'.json'))
         ):
-            imgs_batches.append((batch, os.listdir(os.path.join(img_dir, batch))))  
+            
+            imgs_batches.append((batch, os.listdir(os.path.join(img_dir, batch.replace('_ex', '')))))  
     imgs_batches = [[(i[0], j) for j in i[1]] for i in imgs_batches]
     imgs_batches = [i for j in imgs_batches for i in j]
     imgs_batches = [i for i in imgs_batches if i[1].split('.')[0] not in split_images]
@@ -322,14 +349,14 @@ def data_split_images(
     for sl in slicing:
         for i in imgs_batches[sl[1][0]:sl[1][1]]: # i = (batch_name, image_name)
             shutil.copy(
-                os.path.join(img_dir, i[0], i[1]),
+                os.path.join(img_dir, i[0].replace('_ex', ''), i[1]),
                 os.path.join(img_dir, sl[0])
             )
 
     print('Checking image counts')
     check_count_list = [(train_amount, data_sets[0]), (val_amount, data_sets[1]), (test_amount, data_sets[2])]
     for i,j in check_count_list:
-        folder_img_count = len([i for i in os.listdir(os.path.join(img_dir, j))])
+        folder_img_count = len([i for i in os.listdir(os.path.join(img_dir, j.replace('_ex', '')))])
         if i != folder_img_count:
             raise IncorrectDataSplit(f'Calculated amount of {j} images, {i}, is not equal to the acutal amount of images, {folder_img_count}, in the destinated folder')
 

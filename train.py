@@ -39,7 +39,7 @@ from mrcnn import model as modellib
 
 tf.random.set_seed(42)
 
-BATCH_SIZE = 16
+BATCH_SIZE = 2
 
 #--------------------------------------------------------------#
 #                         SETUP GPU                            #
@@ -70,6 +70,7 @@ class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = BATCH_SIZE
     LEARNING_MOMENTUM = 0.95
+    NUM_CLASSES = 1 + 3 + 1
 
     def __init__(
         self,
@@ -85,8 +86,8 @@ class TrainingConfig(CocoConfig):
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_ext_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_ext_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     starting_material: str = 'MoS2',
@@ -105,7 +106,7 @@ def train_model(
         - computer: if the data directories should be reloaded
         - starting_material: Which weights will be used for fine-tuning on NbSe2.
                     MoS2, BN, Graphene or WTe2
-        - last_layers: True or False. Determines if the last layers are trained or not.
+        - last_layers: True or False. Determines if the last layers weights are loaded or randomized.
             Requires a matching amount of classes between transfer and new model.
     
     Data directory should be setup as the following:
@@ -124,7 +125,7 @@ def train_model(
     """
 
     check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
-    dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR, use_bs=True)
+    dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR, use_bs=False, use_ex=True)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),
