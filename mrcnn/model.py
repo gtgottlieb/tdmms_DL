@@ -2394,6 +2394,7 @@ class MaskRCNN(object):
             image_meta = compose_image_meta(
                 0, image.shape, molded_image.shape, window, scale,
                 np.zeros([self.config.NUM_CLASSES], dtype=np.int32))
+            
             # Append
             molded_images.append(molded_image)
             windows.append(window)

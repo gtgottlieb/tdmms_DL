@@ -125,7 +125,7 @@ def train_model(
     """
 
     check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
-    dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR, use_bs=False, use_ex=True)
+    dataset_train, dataset_val, _ = load_train_val_datasets('data_ex', use_bs=False)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),

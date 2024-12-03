@@ -6,6 +6,7 @@ How to run from a terminal:
         Optional arguments:
             --annotation_threshold <integer>
             --border <integer>
+            --data <data or data_ex>
         Example:
             $ py image_splitting/split.py --annotation_threshold 15 --border 15
 """
@@ -28,11 +29,10 @@ sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
 from bep.utils import load_train_val_datasets
 import image_splitting.utils as utils
 
-BACKGROUND_IMAGE_DIRECTORY = os.path.join(ROOT_DIR, 'data', 'backgrounds', 'marked_sisio2', '100x')
-
 def split_images(
     annotation_threshold: int = 15,
     border: int = 15,
+    dataset: str = 'data',
     log_iteration: bool = False,
 ) -> None:
     """
@@ -48,20 +48,21 @@ def split_images(
             and split image creation.
         - log_iteration: bool = whether to write images with drawn bboxs during overlap iterations
     """
+    BACKGROUND_IMAGE_DIRECTORY = os.path.join(ROOT_DIR, dataset, 'backgrounds', 'marked_sisio2', '100x')
 
-    utils.reset_image_dir(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit'))
+    utils.reset_image_dir(os.path.join(ROOT_DIR, dataset, 'images', 'batchsplit'))
 
-    data, _, _ = load_train_val_datasets(ROOT_DIR, use_bs=False)
+    data, _, _ = load_train_val_datasets(dataset, False)
 
     images = utils.get_images_to_split_from_dataset(data.image_info, annotation_threshold)
 
-    # tiled_background, width, height = utils.create_background(100, os.path.join(ROOT_DIR, 'data', 'images', 'batch4', '67_sio2_NbSe2_Exfoliation_C5-84_f4_img.png'))
+    # tiled_background, width, height = utils.create_background(100, os.path.join(ROOT_DIR, dataset, 'images', 'batch4', '67_sio2_NbSe2_Exfoliation_C5-84_f4_img.png'))
 
     image_id_positions = utils.get_image_ids_positions(data.image_info, images)
 
     print(f'Images: {images}')
 
-    annotations_file = os.path.join(ROOT_DIR, 'data', 'annotations', 'batchsplit.json')
+    annotations_file = os.path.join(ROOT_DIR, dataset, 'annotations', 'batchsplit.json')
     annotations_dict = {
         "info": {
             "year": 2024,
@@ -183,17 +184,18 @@ def split_images(
                 image_id,
                 width,
                 height,
-                bbox
+                bbox,
+                dataset
             )
 
             print(f'Final bbox: {bbox}')
             print(f'Creating and storing image {filename}')
 
             flake_image = utils.cut_out_flake(bg_image, bbox, image, border)
-            utils.store_image(ROOT_DIR, filename, flake_image)
+            utils.store_image(ROOT_DIR, filename, flake_image, dataset)
 
     print('\nDeleting images with zero annotations')
-    annotations_dict = utils.delete_zero_annotation_images(ROOT_DIR, annotations_dict)
+    annotations_dict = utils.delete_zero_annotation_images(ROOT_DIR, annotations_dict, dataset)
 
     print('Storing annotations file')
     with open(annotations_file, 'w+') as f:
@@ -223,9 +225,20 @@ if __name__ == '__main__':
         default=15,
         help='An integer'
     )
+
+    parser.add_argument(
+        '--data', 
+        required=False,
+        default='data',
+        help='data or data_ex'
+    )
     args = parser.parse_args()
 
     # with contextlib.redirect_stdout(NullWriter):
     #     split_images(annotation_threshold=15, border=15)
 
-    split_images(annotation_threshold=int(args.annotation_threshold), border=int(args.border))
+    split_images(
+        int(args.annotation_threshold),
+        int(args.border),
+        args.data
+    )

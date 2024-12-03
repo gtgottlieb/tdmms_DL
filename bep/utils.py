@@ -18,7 +18,11 @@ from mrcnn.model import log
 
 from typing import Tuple, Union, List
 
+ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
+
 LABELBOX_NBSE2_SIO2_ID = 'cm167pqz802tq07023jfr2abh'
+LABELBOX_NBSE2_SIO2_EXTENDED_ID = 'cm46uxql6023s07yx92im8tt4'
+
 
 _data_sets = ['train', 'val', 'test']
 data_types = ['images', 'annotations']
@@ -46,7 +50,7 @@ Set by running: os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 #                                                                                           #
 #-------------------------------------------------------------------------------------------#
 
-def load_train_val_datasets(ROOT_DIR: str, use_bs: bool = False, use_ex: bool = False) -> Tuple[bepDataset, bepDataset]:
+def load_train_val_datasets(data: str = 'data', use_bs: bool = False) -> Tuple[bepDataset, bepDataset]:
     """
     Function to load train and validation datasets of the BEP data.
     
@@ -62,28 +66,25 @@ def load_train_val_datasets(ROOT_DIR: str, use_bs: bool = False, use_ex: bool = 
                 val/
                 test/
     """
+    data_sets = _data_sets
     if use_bs:
         data_sets = [i+'_bs' for i in _data_sets]
-    elif use_ex:
-        data_sets = [i+'_ex' for i in _data_sets]
-    else:
-        data_sets = _data_sets
 
     dataset_train = bepDataset()
-    dataset_train.load_dir(os.path.join(ROOT_DIR, 'data'), data_sets[0], reload_annotations=True)
+    dataset_train.load_dir(os.path.join(ROOT_DIR, data), data_sets[0], reload_annotations=True)
     dataset_train.prepare()
 
     dataset_val = bepDataset()
-    dataset_val.load_dir(os.path.join(ROOT_DIR, 'data'), data_sets[1], reload_annotations=True)
+    dataset_val.load_dir(os.path.join(ROOT_DIR, data), data_sets[1], reload_annotations=True)
     dataset_val.prepare()
 
     dataset_test = bepDataset()
-    dataset_test.load_dir(os.path.join(ROOT_DIR, 'data'), data_sets[2], reload_annotations=True)
+    dataset_test.load_dir(os.path.join(ROOT_DIR, data), data_sets[2], reload_annotations=True)
     dataset_test.prepare()
 
     return dataset_train, dataset_val, dataset_test
 
-def load_train_val_datasets_tdmms(ROOT_DIR: str, material: str = 'MoS2') -> Tuple[CocoDataset, CocoDataset]:
+def load_train_val_datasets_tdmms(material: str = 'MoS2') -> Tuple[CocoDataset, CocoDataset]:
     """
     Function to load train and validation datasets of the TDMMS data.
 
@@ -137,10 +138,9 @@ def load_tdmms_weights(material: str) -> str:
 
 
 def check_dir_setup(
-    ROOT_DIR: str,
     data_split: Tuple[float,float,float],
+    data: str = 'data',
     use_bs: bool = False,
-    use_ex: bool = True
 ) -> None:
     """Function to check if the directory is setup correctly. This 
     means checking for train and validation folders/files.
@@ -175,13 +175,10 @@ def check_dir_setup(
         - data_split: determines the train validation test split
                     (train size, validation size, test size)
                     For example: (0.8, 0.1, 0.1)
-    """ 
+    """
+    data_sets = _data_sets
     if use_bs:
         data_sets = [i+'_bs' for i in _data_sets]
-    elif use_ex:
-        data_sets = [i+'_ex' for i in _data_sets]
-    else:
-        data_sets = _data_sets
 
     for dt in data_types:
         for ds in data_sets:
@@ -189,10 +186,10 @@ def check_dir_setup(
             if dt == data_types[1]:
                 extension = '.ndjson'
             
-            path = os.path.join(ROOT_DIR, 'data', dt, ds+extension)
+            path = os.path.join(ROOT_DIR, data, dt, ds+extension)
             if not os.path.exists(path):
                 print(f'{path} did not exist')
-                create_dir_setup(ROOT_DIR, data_split)
+                create_dir_setup(ROOT_DIR, data, data_split)
                 return None
             
     print('Directory setup correctly')
@@ -200,55 +197,48 @@ def check_dir_setup(
     return None
 
 def create_dir_setup(
-    ROOT_DIR: str,
     data_split: Tuple[float, float, float],
+    data: str = 'data',
     use_bs: bool = False,
-    use_ex: bool = False
 ) -> None:
     """Function to reset and create train and validation directories."""
     
     print('Creating directories from batches')
 
-    batches = [i.split('.')[0] for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'annotations'))]
+    batches = [i.split('.')[0] for i in os.listdir(os.path.join(ROOT_DIR, data, 'annotations'))]
 
+    data_sets = _data_sets
     if use_bs:
-        data_sets = [i+'_bs' for i in _data_sets]
-        batches = list(set([i for i in batches if 'batch' in i and 'ex' not in i]))
-    elif use_ex:
-        data_sets = [i+'_ex' for i in _data_sets]
-        batches = list(set([i for i in batches if 'batch' in i and 'ex' in i]))
-    else:
-        data_sets = _data_sets
-        batches = list(set([i for i in batches if 'batch' in i and 'ex' not in i and 'split' not in i]))
+        data_sets = [i+'_bs' for i in data_sets]
 
-    # batches = [
-    #     i 
-    #     for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images'))
-    #     if ('batch' in  i and ((i != 'batchsplit' or use_bs) or ('ex' not in i or use_ex)))
-    # ]
+    batches = [
+        i 
+        for i in os.listdir(os.path.join(ROOT_DIR, data, 'images'))
+        if ('batch' in  i and (i != 'batchsplit' or use_bs))
+    ]
 
     print('Found batches:',', '.join(batches))
 
     images_for_training = []
     split_images = []
     if not use_bs:
-        images_for_training = get_images_for_training(ROOT_DIR, batches, 15)
+        images_for_training = get_images_for_training(batches, data, 15)
     else:
-        if os.path.isdir(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit')):
-            split_images = list(set([i.split('_split')[0] for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit'))]))
+        if os.path.isdir(os.path.join(ROOT_DIR, data, 'images', 'batchsplit')):
+            split_images = list(set([i.split('_split')[0] for i in os.listdir(os.path.join(ROOT_DIR, data, 'images', 'batchsplit'))]))
     
-    reset_dirs(ROOT_DIR, data_sets)
-    data_split_images(batches, ROOT_DIR, data_split, images_for_training, data_sets, split_images)
-    data_split_annotations(batches, ROOT_DIR, data_sets)
+    reset_dirs(data_sets, data)
+    data_split_images(batches, data_split, images_for_training, data_sets, split_images, data)
+    data_split_annotations(batches, data_sets, data)
 
     return None
     
-def reset_dirs(ROOT_DIR: str, data_sets: list) -> None:
+def reset_dirs(data_sets: list, data: str) -> None:
     """Function to reset the image and annotation directories of the
     train and validation sets."""
     # Reset image directory
     for ds in data_sets:
-        path = os.path.join(ROOT_DIR, 'data', 'images', ds)
+        path = os.path.join(ROOT_DIR, data, 'images', ds)
         
         if os.path.exists(path):
             try:
@@ -256,11 +246,11 @@ def reset_dirs(ROOT_DIR: str, data_sets: list) -> None:
             except OSError as e:
                 print('Error in deleting image directory:',e)
         
-        os.mkdir(os.path.join(ROOT_DIR, 'data', 'images', ds))
+        os.mkdir(os.path.join(ROOT_DIR, data, 'images', ds))
                 
     # Reset annotations directory
     for ds in data_sets:
-        path = os.path.join(ROOT_DIR, 'data', 'annotations', ds+'.ndjson')
+        path = os.path.join(ROOT_DIR, data, 'annotations', ds+'.ndjson')
         
         if os.path.exists(path):
             try:
@@ -270,13 +260,13 @@ def reset_dirs(ROOT_DIR: str, data_sets: list) -> None:
                 
     return None
 
-def get_images_for_training(ROOT_DIR: str, batches: list, annotation_threshold: int = 15):
+def get_images_for_training(batches: list, data: str, annotation_threshold: int = 15):
     images = []
     for batch in batches:
         rows = []
 
         try:
-            with open(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')) as f:
+            with open(os.path.join(ROOT_DIR, data, 'annotations', batch+'.ndjson')) as f:
                 rows += [json.loads(l) for l in f.readlines()]
         except FileNotFoundError:
             print('{}.ndjson not found. Skipping'.format(batch))
@@ -296,11 +286,11 @@ def get_images_for_training(ROOT_DIR: str, batches: list, annotation_threshold: 
 
 def data_split_images(
     batches: list,
-    ROOT_DIR: str,
     data_split: Tuple[float, float, float],
     images_for_training: List[str],
     data_sets: List[str],
-    split_images: List[str]
+    split_images: List[str],
+    data: str
 ) -> None:
     """
     Function to load the images from all found batches and split the 
@@ -310,8 +300,8 @@ def data_split_images(
         - batches: list of all the found batch folders
         - train_size: size of the train split, also determines the val split
     """
-    img_dir = os.path.join(ROOT_DIR, 'data', 'images')
-    ann_dir = os.path.join(ROOT_DIR, 'data', 'annotations')
+    img_dir = os.path.join(ROOT_DIR, data, 'images')
+    ann_dir = os.path.join(ROOT_DIR, data, 'annotations')
 
     imgs_batches = []
     
@@ -321,7 +311,7 @@ def data_split_images(
             os.path.exists(os.path.join(ann_dir, batch+'.json'))
         ):
             
-            imgs_batches.append((batch, os.listdir(os.path.join(img_dir, batch.replace('_ex', '')))))  
+            imgs_batches.append((batch, os.listdir(os.path.join(img_dir, batch))))  
     imgs_batches = [[(i[0], j) for j in i[1]] for i in imgs_batches]
     imgs_batches = [i for j in imgs_batches for i in j]
     imgs_batches = [i for i in imgs_batches if i[1].split('.')[0] not in split_images]
@@ -349,20 +339,20 @@ def data_split_images(
     for sl in slicing:
         for i in imgs_batches[sl[1][0]:sl[1][1]]: # i = (batch_name, image_name)
             shutil.copy(
-                os.path.join(img_dir, i[0].replace('_ex', ''), i[1]),
+                os.path.join(img_dir, i[0], i[1]),
                 os.path.join(img_dir, sl[0])
             )
 
     print('Checking image counts')
     check_count_list = [(train_amount, data_sets[0]), (val_amount, data_sets[1]), (test_amount, data_sets[2])]
     for i,j in check_count_list:
-        folder_img_count = len([i for i in os.listdir(os.path.join(img_dir, j.replace('_ex', '')))])
+        folder_img_count = len([i for i in os.listdir(os.path.join(img_dir, j))])
         if i != folder_img_count:
             raise IncorrectDataSplit(f'Calculated amount of {j} images, {i}, is not equal to the acutal amount of images, {folder_img_count}, in the destinated folder')
 
     return None
 
-def data_split_annotations(batches: list, ROOT_DIR: str, data_sets: list) -> None:
+def data_split_annotations(batches: list, data_sets: list, data: str) -> None:
     """Function to load the annotations from all found batches and split the 
     annotations into a train and validation set. Uses the already created 
     train/ val/ and test/ folders in images/ to know which annotations belongs
@@ -372,8 +362,8 @@ def data_split_annotations(batches: list, ROOT_DIR: str, data_sets: list) -> Non
     ' instead of ", and ' is no .json. It work with a .replace when reading the files.
     But it can better be fixed here.
     """
-    img_dir = os.path.join(ROOT_DIR, 'data', 'images')
-    ann_dir = os.path.join(ROOT_DIR, 'data', 'annotations')
+    img_dir = os.path.join(ROOT_DIR, data, 'images')
+    ann_dir = os.path.join(ROOT_DIR, data, 'annotations')
 
     rows = []
     for batch in batches:
@@ -427,8 +417,6 @@ def convert_coco_to_ndjson(coco_file_path: str, ndjson_file_path: str) -> None:
         'thick': 3  # 10 - 40 layers    / 7 - 28 nm
     }
 
-    class_variable_mapping_inverse = {v: k for k, v in class_variable_mapping.items()}
-
     with open(coco_file_path, 'r') as f:
         coco_data = json.load(f)
     
@@ -440,6 +428,13 @@ def convert_coco_to_ndjson(coco_file_path: str, ndjson_file_path: str) -> None:
         if image_id not in grouped_annotations:
             grouped_annotations[image_id] = []
         grouped_annotations[image_id].append(annotation)
+    
+    PROJECT_ID = LABELBOX_NBSE2_SIO2_ID
+    if 'ex' in ndjson_file_path:
+        PROJECT_ID = LABELBOX_NBSE2_SIO2_EXTENDED_ID
+        class_variable_mapping['massive'] = 4
+    
+    class_variable_mapping_inverse = {v: k for k, v in class_variable_mapping.items()}
 
     with open(ndjson_file_path, 'w+') as ndjson_file:
         for image_id, image_data in images.items():
@@ -457,7 +452,7 @@ def convert_coco_to_ndjson(coco_file_path: str, ndjson_file_path: str) -> None:
             }
             
             project_data = {
-                LABELBOX_NBSE2_SIO2_ID: {
+                PROJECT_ID: {
                     "labels": [{
                         'annotations': {
                             'classifications': [],
@@ -571,7 +566,7 @@ class runModel():
             image, r['rois'],
             r['masks'],
             r['class_ids'], 
-            ['','Mono', 'Few','Thick'], r['scores'],
+            self.dataset.class_names, r['scores'],
             ax=ax,
             title=title
         )
@@ -644,7 +639,7 @@ class runModel():
         )
         return None
 
-    def run_from_path(self, path: str) -> None:
+    def run_from_path(self, path: str, use_ex: bool = False) -> None:
         """Run detection on a single image."""
         image = self.load_image(path)
         image = self.resize_image(image)
@@ -652,6 +647,10 @@ class runModel():
         results = self.model.detect([image], verbose=1)
 
         title = self.model.name + ' Predictions'
+
+        class_names = ['','Mono', 'Few','Thick']
+        if use_ex:
+            class_names.append('Massive')
 
         ax = get_ax(1, 1, self.plot_size)
         r = results[0]

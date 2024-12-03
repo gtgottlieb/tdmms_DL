@@ -68,7 +68,7 @@ def get_images_to_split_from_dataset(image_info: List[dict], annotation_threshol
 
     return images
 
-def get_images_to_split_from_batches(ROOT_DIR:str, annotation_threshold: int = 15):
+def get_images_to_split_from_batches(ROOT_DIR:str, data: str, annotation_threshold: int = 15):
     """
     Function to extract the images from all batches that have more annotations than the annotation
     threshold. These will be split.
@@ -81,13 +81,13 @@ def get_images_to_split_from_batches(ROOT_DIR:str, annotation_threshold: int = 1
 
     Note: currently not used
     """
-    batches = [i for i in os.listdir(os.path.join(ROOT_DIR, 'data', 'images')) if ('batch' in  i and i != 'batchsplit')]
+    batches = [i for i in os.listdir(os.path.join(ROOT_DIR, data, 'images')) if ('batch' in  i and i != 'batchsplit')]
     print('Found batches:',', '.join(batches))
 
     images = []
     for batch in batches:
         rows = []
-        with open(os.path.join(ROOT_DIR, 'data', 'annotations', batch+'.ndjson')) as f:
+        with open(os.path.join(ROOT_DIR, data, 'annotations', batch+'.ndjson')) as f:
             rows += [json.loads(l) for l in f.readlines()]
         
         for row in rows:
@@ -121,7 +121,8 @@ def update_annotations_dict(
     image_id: int,
     width: int,
     height: int,
-    bbox: List[float]
+    bbox: List[float],
+    data: str
 ) -> dict:
     """
     Function to update the global batch split annotations dictionary.
@@ -149,7 +150,7 @@ def update_annotations_dict(
     annotations_dict['annotations'].append(flake_annotation)
     annotations_dict['images'].append({
         "id": int('{}{}'.format(image_id, idx)),
-        "path": os.path.join(ROOT_DIR, 'data', 'images', 'split', filename),
+        "path": os.path.join(ROOT_DIR, data, 'images', 'split', filename),
         "file_name": filename,
         "width": width,
         "height": height,
@@ -166,10 +167,11 @@ def store_image(
     ROOT_DIR: str,
     filename: str,
     flake_image: np.ndarray,
+    data: str
 ) -> None:
     """Function to write / store a split image."""
     cv2.imwrite(
-        os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit', filename),
+        os.path.join(ROOT_DIR, data, 'images', 'batchsplit', filename),
         cv2.cvtColor(flake_image, cv2.COLOR_RGB2BGR)
     )
 
@@ -354,7 +356,7 @@ def change_split_image(ids_to_switch: List[int], new_split_image: str, annotatio
     
     return annotations_dict, bbox_coords
 
-def delete_zero_annotation_images(ROOT_DIR: str, annotations_dict: dict):
+def delete_zero_annotation_images(ROOT_DIR: str, annotations_dict: dict, data: str):
     """
     Function that deletes all split images with zero annotations.
     Images with zero annotation are created after annotations are moved to
@@ -365,7 +367,7 @@ def delete_zero_annotation_images(ROOT_DIR: str, annotations_dict: dict):
         
         if annotation_count == 0:
             print('Deleting split image: {}'.format(split_image['file_name']))
-            os.remove(os.path.join(ROOT_DIR, 'data', 'images', 'batchsplit', split_image['file_name']))
+            os.remove(os.path.join(ROOT_DIR, data, 'images', 'batchsplit', split_image['file_name']))
             annotations_dict['images'].remove(split_image)
     
     return annotations_dict
