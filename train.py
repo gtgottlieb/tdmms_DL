@@ -39,7 +39,7 @@ from mrcnn import model as modellib
 
 tf.random.set_seed(42)
 
-BATCH_SIZE = 2
+BATCH_SIZE = 4
 
 #--------------------------------------------------------------#
 #                         SETUP GPU                            #
@@ -86,8 +86,8 @@ class TrainingConfig(CocoConfig):
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_ext_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_ext_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_ext_afm_hum_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_ext_afm_hum_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     starting_material: str = 'MoS2',
@@ -125,7 +125,7 @@ def train_model(
     """
 
     check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
-    dataset_train, dataset_val, _ = load_train_val_datasets('data_ex', use_bs=False)
+    dataset_train, dataset_val, _ = load_train_val_datasets('data_ex_afm_human', use_bs=False)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),
