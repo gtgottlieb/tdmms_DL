@@ -7,7 +7,7 @@ How to run from a terminal:
         Optional arguments:
             --weights <weights filename>
         Example:
-            $ py mal/upload.py batch4 --weights nbse2_from_mos2_images_20_epochs_111.h5
+            $ py mal/predict.py batch4 --weights nbse2_from_mos2_images_20_epochs_111.h5
 """
 
 import os
@@ -40,6 +40,7 @@ class malConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
     DETECTION_MIN_CONFIDENCE = 0
+    NUM_CLASSES = 1 + 3 + 1
 
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'mal')
 
@@ -47,7 +48,7 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
     os.makedirs(DEFAULT_LOGS_DIR)
     print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
 
-def predict(data: str, weights: str=None) -> None:
+def predict(data: str, weights: str=None, data_dir: str = 'data') -> None:
     """
     Function to make predictions and store them.
     First predictions are made and then the polygon
@@ -77,11 +78,15 @@ def predict(data: str, weights: str=None) -> None:
     model.load_weights(MODEL_PATH, by_name=True)
 
     dataset = malDataset(malConfig)
-    dataset.load_dir(os.path.join(ROOT_DIR, 'data'), data)
+    dataset.load_dir(os.path.join(ROOT_DIR, data_dir), data)
 
     create_annotations_folder(data, ROOT_DIR, overwrite=True)
 
     print('Making and storing predictions per image..')
+
+    class_names = ['','Mono', 'Few','Thick']
+    if config.NUM_CLASSES > 4:
+        class_names.append('Massive')
 
     for image_info in tqdm(dataset.image_info):
         external_id = image_info['path'].split('\\')[-1]
@@ -94,7 +99,7 @@ def predict(data: str, weights: str=None) -> None:
             results['rois'],
             results['masks'],
             results['class_ids'],
-            ['','Mono', 'Few','Thick'],
+            class_names,
             results['scores'],
             sieve_amount=10
         )
@@ -120,6 +125,13 @@ if __name__ == '__main__':
         help='Weights filename'
     )
 
+    parser.add_argument(
+        '--data', 
+        required=False,
+        default='data',
+        help='Data directory'
+    )
+
     args = parser.parse_args()
 
-    predict(args.command, args.weights)
+    predict(args.command, args.weights, args.data)

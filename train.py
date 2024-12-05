@@ -124,8 +124,8 @@ def train_model(
             <material>_mask_rcnn_tdm_120.h5
     """
 
-    check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1), use_bs=True)
-    dataset_train, dataset_val, _ = load_train_val_datasets('data_ex_afm_human', use_bs=False)
+    check_dir_setup((0.8, 0.1, 0.1), data='data_ex_afm_human', use_bs=True)
+    dataset_train, dataset_val, _ = load_train_val_datasets('data_ex_afm_human', use_bs=True)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),
