@@ -28,31 +28,35 @@ import config
 # API_KEY = api_config.LABELBOX_API_KEY
 client = lb.Client(API_KEY)
 
-data_pre_fix = 'mal_test_'
+data_pre_fix = ''
+
+def get_datarows(data: str, data_dir: str) -> list:
+    data_rows = []
+    data_path = os.path.join(ROOT_DIR, data_dir, 'images', data)
+    images = os.listdir(data_path)
+    for i in images:
+        data_rows.append({
+            "row_data": os.path.join(data_path, i),
+            "global_key": data_pre_fix+i,
+            "external_id": data_pre_fix+i,
+        })
+
+    return data_rows
 
 # Create a dataset in Labelbox
 # Each dataset is a batch from the data/ folder
-def upload_dataset(data: str):
+def upload_dataset(data: str, data_rows: list):
     """
     Function to upload a dataset to Labelbox as dataset.
     The dataset name and global keys of the images must both
     be unique in the Labelbox workspace.
 
     Args:
-        - data: which folder to upload to from ROOT_DIR/data/images/
+        - data: which folder to upload to from ROOT_DIR/<data_dir>/images/
     """
     dataset_name = data_pre_fix + data
 
     print(f"Uploading '{data}' data under '{dataset_name}'..")
-
-    data_rows = []
-    data_dir = os.path.join(ROOT_DIR, 'data', 'images', data)
-    images = os.listdir(data_dir)
-    for i in images:
-        data_rows.append({
-            "row_data": os.path.join(data_dir, i),
-            "global_key": data_pre_fix+i
-        })
 
     dataset = client.create_dataset(name=dataset_name)
     task = dataset.create_data_rows(data_rows)
@@ -134,7 +138,7 @@ def link_annotations_to_datarows(global_keys: list, data: str) -> list:
             annotation.update({
                 "dataRow": {
                     "globalKey": global_key
-                },
+                }
             })
             label_ndjson.append(annotation)
 
@@ -150,11 +154,21 @@ def upload_annotations(project, global_keys: list, data: str) -> None:
     """
 
     print('Uploading annotations..')
-    upload_job = lb.MALPredictionImport.create_from_objects(
+
+    # Upload as pre-labels
+    # upload_job = lb.MALPredictionImport.create_from_objects(
+    #     client = client, 
+    #     project_id = project.uid, 
+    #     name="mal_job"+str(uuid.uuid4()), 
+    #     predictions=link_annotations_to_datarows(global_keys, data)
+    # )
+
+    # Upload as ground truth
+    upload_job = lb.LabelImport.create_from_objects(
         client = client, 
         project_id = project.uid, 
-        name="mal_job"+str(uuid.uuid4()), 
-        predictions=link_annotations_to_datarows(global_keys, data)
+        name="label_import_job"+str(uuid.uuid4()),  
+        labels=link_annotations_to_datarows(global_keys, data)
     )
 
     print(f"Errors: {upload_job.errors}")
@@ -177,7 +191,15 @@ if __name__ == '__main__':
         help='The project ID to link the data to'
     )
 
+    parser.add_argument(
+        '--data', 
+        required=False,
+        default='data',
+        help='Data directory'
+    )
+
     args = parser.parse_args()
 
-    data_rows = upload_dataset(args.command)
+    data_rows = get_datarows(args.command, args.data)
+    upload_dataset(args.command, data_rows)
     link_dataset_to_project(args.command, args.project_id, data_rows)

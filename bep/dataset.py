@@ -10,8 +10,9 @@ from pycocotools.coco import COCO
 from mrcnn.utils import Dataset
 from pycocotools import mask as maskUtils
 
-LABELBOX_NBSE2_SIO2_ID = 'cm167pqz802tq07023jfr2abh'
-LABELBOX_NBSE2_SIO2_EXTENDED_ID = 'cm46uxql6023s07yx92im8tt4'
+LABELBOX_NBSE2_SIO2_AFM_ID = 'cm167pqz802tq07023jfr2abh'
+LABELBOX_NBSE2_SIO2_AFM_HUMAN_EXTENDED_ID = 'cm46uxql6023s07yx92im8tt4'
+LABELBOX_NBSE2_SIO2_AFM_EXTENDED_ID = 'cm4b4om1a01rd072fgdr7b8lf'
 
 
 class NullWriter:
@@ -94,9 +95,12 @@ class bepDataset(Dataset):
             "images": [],
         }
         
-        PROJECT_ID = LABELBOX_NBSE2_SIO2_ID
+        PROJECT_ID = LABELBOX_NBSE2_SIO2_AFM_ID
         if 'ex' in annotations_file:
-            PROJECT_ID = LABELBOX_NBSE2_SIO2_EXTENDED_ID
+            PROJECT_ID = LABELBOX_NBSE2_SIO2_AFM_EXTENDED_ID
+            if 'human' in annotations_file:
+                PROJECT_ID = LABELBOX_NBSE2_SIO2_AFM_HUMAN_EXTENDED_ID
+                
             coco_format['categories'].append({"id": 4, "name": "Massive_NbSe2"})
             self.class_variable_mapping['massive'] = 4
 

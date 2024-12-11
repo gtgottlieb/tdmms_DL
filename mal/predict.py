@@ -34,21 +34,13 @@ from tdmms.tdmcoco import CocoConfig
 
 from mrcnn import model as modellib
 
-class malConfig(CocoConfig):
-    # Set batch size to 1 since we'll be running inference on
-    # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
-    DETECTION_MIN_CONFIDENCE = 0
-    NUM_CLASSES = 1 + 3 + 1
-
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, 'logs', 'mal')
 
 if not os.path.exists(DEFAULT_LOGS_DIR):
     os.makedirs(DEFAULT_LOGS_DIR)
     print(f"Folder '{DEFAULT_LOGS_DIR}' created.")
 
-def predict(data: str, weights: str=None, data_dir: str = 'data') -> None:
+def predict(data: str, weights: str=None, data_dir: str = 'data_afm', num_classes: int = 3) -> None:
     """
     Function to make predictions and store them.
     First predictions are made and then the polygon
@@ -62,6 +54,12 @@ def predict(data: str, weights: str=None, data_dir: str = 'data') -> None:
         - weights: which weights to use for predictions, default is
             'nbse2_from_mos2_images_20_epochs_111.h5'.
     """
+    class malConfig(CocoConfig):
+        GPU_COUNT = 1
+        IMAGES_PER_GPU = 1
+        DETECTION_MIN_CONFIDENCE = 0.7
+        NUM_CLASSES = 1 + num_classes
+
     config = malConfig()
     model = modellib.MaskRCNN(
         mode="inference",
@@ -70,7 +68,7 @@ def predict(data: str, weights: str=None, data_dir: str = 'data') -> None:
     )
 
     if not weights:
-        weights = 'nbse2_from_mos2_images_20_epochs_111.h5'
+        weights = '20241128-210317_nbse2_wte2_True_83_8__0100.h5'
 
     print(f'Loading {weights} weights file..')
 
@@ -85,7 +83,7 @@ def predict(data: str, weights: str=None, data_dir: str = 'data') -> None:
     print('Making and storing predictions per image..')
 
     class_names = ['','Mono', 'Few','Thick']
-    if config.NUM_CLASSES > 4:
+    if num_classes == 4:
         class_names.append('Massive')
 
     for image_info in tqdm(dataset.image_info):
@@ -132,6 +130,13 @@ if __name__ == '__main__':
         help='Data directory'
     )
 
+    parser.add_argument(
+        '--classes', 
+        required=False,
+        default=3,
+        help='Amount of classes'
+    )
+
     args = parser.parse_args()
 
-    predict(args.command, args.weights, args.data)
+    predict(args.command, args.weights, args.data, int(args.classes))
