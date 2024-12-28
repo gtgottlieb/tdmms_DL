@@ -36,7 +36,6 @@ The directory should be setup as follows:
 - logs/
 - mal/ *used for temporary files for MAL*
 - tddms_DL/ *this repository*
-- training_curves/*contains for each run the training curves in csv format*
 - weights/ *contains all model weights, also from tdmms*
 - api_config.py *contains secret API keys for Labelbox and Pushover*
 
@@ -76,16 +75,6 @@ This section explains how to setup a Conda environment for GPU usage.
 6.  `pip install -r requirements.txt`
 
 And you are good to go!
-
-## Pushover Notifications
-To monitor the training of the model Pushover notifications are integrated.
-1. Create a Pushover account, see [this website](https://pushover.net/). 
-2. Create an application, see [this page](https://pushover.net/apps/build).
-3. Add these two lines to the `api_config.py` file in the root directory:
-```
-PUSHOVER_APP_KEY = '<your app key>'
-PUSHOVER_USER_KEY = '<your user key>'
-```
 
 ## Contact
 

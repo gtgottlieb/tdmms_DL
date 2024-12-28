@@ -5,9 +5,7 @@ How to run from a terminal:
     1. activate your environment
     2. run: $ py train.py 
         with optional arguments:   
-            --reload_data_dir <True or False> 
             --starting_material <MoS2, WTe2, Graphene or BN>
-            --intensity <1, 2, 3 or 4>
             --last_layers <True or False>
 """
 
@@ -25,10 +23,15 @@ from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
 from bep.utils import (
     check_dir_setup, 
-    create_dir_setup,
-    load_train_val_datasets
+    load_train_val_datasets,
+    load_tdmms_weights
 )
+<<<<<<< HEAD
 #from bep.pushover import notify
+=======
+from bep.dataset import bepDataset
+from notifications.discord import notify
+>>>>>>> 5618c28d8c898e960cf3bdd8b64b5d4b1d06ce91
 
 ROOT_DIR = os.path.abspath("../")
 print('Root directory:',ROOT_DIR)
@@ -37,6 +40,10 @@ sys.path.append(ROOT_DIR)
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 from mrcnn import model as modellib
+
+tf.random.set_seed(42)
+
+BATCH_SIZE = 4
 
 #--------------------------------------------------------------#
 #                         SETUP GPU                            #
@@ -65,32 +72,30 @@ if not os.path.exists(DEFAULT_LOGS_DIR):
 
 class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
-    IMAGES_PER_GPU = 4
+    IMAGES_PER_GPU = BATCH_SIZE
+    LEARNING_MOMENTUM = 0.95
+    NUM_CLASSES = 1 + 3 + 1
 
     def __init__(
         self,
         train_images: int,
         val_images: int,
         starting_material: str,
-        intensity: int,
         last_layers: bool,
     ):
         super().__init__()
         batch_size = self.GPU_COUNT * self.IMAGES_PER_GPU
         total_image_count = train_images + val_images
         self.STEPS_PER_EPOCH = train_images / batch_size
-        # Checkpoint name format:
-        # <datetime now>_<fine-tuned on>_<fine-tuned from>_<images in train and validation set>_<intensity>_<batch size>_<epoch amount>
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_{starting_material.lower()}_{intensity}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_ext_afm_hum_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_ext_afm_hum_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
-    reload_data_dir: bool = False,
     starting_material: str = 'MoS2',
-    intensity: int = 4,
-    last_layers: bool = False
+    last_layers: bool = False,
 ):
     """
     Function to train MRCNN.
@@ -105,12 +110,7 @@ def train_model(
         - computer: if the data directories should be reloaded
         - starting_material: Which weights will be used for fine-tuning on NbSe2.
                     MoS2, BN, Graphene or WTe2
-        - intensity: 1, 2, 3 or 4. Determines the amount of training.
-            1: Only network heads
-            2: adds ResNet stage 4 and up
-            3: adds all layers
-            4: add all layers again with a lower learning rate
-        - last_layers: True or False. Determines if the last layers are trained or not.
+        - last_layers: True or False. Determines if the last layers weights are loaded or randomized.
             Requires a matching amount of classes between transfer and new model.
     
     Data directory should be setup as the following:
@@ -128,21 +128,20 @@ def train_model(
             <material>_mask_rcnn_tdm_120.h5
     """
 
-    if reload_data_dir:
-        create_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
-    else:
-        check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
-    dataset_train, dataset_val, _ = load_train_val_datasets(ROOT_DIR)
+    check_dir_setup((0.8, 0.1, 0.1), data='data_ex_afm_human', use_bs=True)
+    dataset_train, dataset_val, _ = load_train_val_datasets('data_ex_afm_human', use_bs=True)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),
         len(dataset_val.image_ids),
         starting_material,
-        intensity,
         last_layers,
     )
     config.display()
+<<<<<<< HEAD
     #notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
+=======
+>>>>>>> 5618c28d8c898e960cf3bdd8b64b5d4b1d06ce91
 
     model = modellib.MaskRCNN(
         mode="training",
@@ -150,16 +149,23 @@ def train_model(
         model_dir=DEFAULT_LOGS_DIR
     )
 
-    MODEL_PATH = os.path.join(ROOT_DIR, 'weights', starting_material.lower()+'_mask_rcnn_tdm_0120.h5')
-
+    MODEL_PATH = os.path.join(ROOT_DIR, 'weights', load_tdmms_weights(starting_material))
     print("Loading weights ", MODEL_PATH)
+    model.load_weights(MODEL_PATH, by_name=True, exclude=[] if last_layers == 'True' else ["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+    
+    augmentation = get_augmentation()
 
-    if last_layers == 'True':
-        # Amount of classes of transer model must be the same as the new model
-        model.load_weights(MODEL_PATH, by_name=True)
-    else:
-        model.load_weights(MODEL_PATH, by_name=True, exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"])
+    train_tdmms_stages(
+        model,
+        config,
+        dataset_train,
+        dataset_val,
+        augmentation
+    )
 
+    return None
+
+def get_augmentation():
     augmentation = iaa.SomeOf((0, None), [
         iaa.Fliplr(0.5),
         iaa.Flipud(0.5),
@@ -198,6 +204,7 @@ def train_model(
     ])
     '''
 
+<<<<<<< HEAD
     #notify('Training network heads')
     if intensity >= 1:
         # Training - Stage 1
@@ -250,10 +257,101 @@ def train_model(
             layers='all',
             augmentation=augmentation
         )
+=======
+    return augmentation
+
+def train_bep_stages(
+    model: modellib.MaskRCNN,
+    config: CocoConfig,
+    dataset_train: bepDataset,
+    dataset_val: bepDataset,
+    augmentation
+) -> None:
+    notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
+
+    notify('Training network heads')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE,
+        epochs=90,
+        layers='heads',
+        augmentation=augmentation
+    )
+    
+    notify('Reduce LR and further tune all layers')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE/100,
+        epochs=120,
+        layers='all',
+        augmentation=augmentation
+    )
+>>>>>>> 5618c28d8c898e960cf3bdd8b64b5d4b1d06ce91
 
     #notify('Done training')
 
-    return None   
+    return None
+
+def train_tdmms_stages(
+    model: modellib.MaskRCNN,
+    config: CocoConfig,
+    dataset_train: bepDataset,
+    dataset_val: bepDataset,
+    augmentation
+) -> None:
+    notify('Started training {}'.format(config.CHECKPOINT_NAME[:-1]))
+
+    # Training - Stage 1
+    notify('Training network heads')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE,
+        epochs=30,
+        layers='heads',
+        augmentation=augmentation
+    )
+
+    # Training - Stage 2
+    # Finetune layers from ResNet stage 4 and up
+    notify('Fine tune Resnet stage 4 and up')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE/10,
+        epochs=60,
+        layers='4+',
+        augmentation=augmentation
+    )
+    
+    
+    # Training - Stage 3
+    # Fine tune all layers
+    notify('Fine tune all layers')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE /10,
+        epochs=90,
+        layers='all',
+        augmentation=augmentation
+    )
+    
+    notify('Reduce LR and further tune all layers')
+    model.train(
+        dataset_train,
+        dataset_val,
+        learning_rate=config.LEARNING_RATE /100,
+        epochs=120,
+        layers='all',
+        augmentation=augmentation
+    )
+
+    notify('Done training')
+
+    return None
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -261,24 +359,10 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--reload_data_dir', 
-        required=False,
-        default=False,
-        help='False or True'
-    )
-
-    parser.add_argument(
         '--starting_material', 
         required=False,
         default='MoS2',
         help='MoS2, WTe2, Graphene or BN'
-    )
-
-    parser.add_argument(
-        '--intensity',
-        required=False,
-        default=1,
-        help='Intensity 1, 2, 3 or 4'
     )
 
     parser.add_argument(
@@ -292,10 +376,8 @@ if __name__ == '__main__':
 
     try:
         train_model(
-            args.reload_data_dir,
             args.starting_material,
-            int(args.intensity),
-            args.last_layers
+            args.last_layers,
         )
     except Exception as e:
         logging.error("An exception occurred", exc_info=True)

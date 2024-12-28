@@ -11,6 +11,8 @@ This directory contains the code for image splitting, also known as copy-paste a
 
 ### Usage
 
+Set the `BACKGROUND_IMAGE_DIRECTORY` variable in `split.py` to the directory that contains the background images for the copy paste augmentation.
+
 To run this algorithm, run the following:
 `python image_splitting/split.py`
 With optional arguments:
