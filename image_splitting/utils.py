@@ -389,42 +389,20 @@ def extract_bbox_coords(bbox_coords: list):
     updated_coords = (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
 
     return updated_coords
-
-def calc_hist(image_path):
-    image = cv2.imread(image_path)
-    if image is None:
-        raise ValueError(f"Image at path {image_path} could not be loaded.")
-
-    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    hist = cv2.calcHist([hsv_image], [0, 1], None, [50, 60], [0, 180, 0, 256])
-
-    hist = cv2.normalize(hist, hist).flatten()
-    return hist
-
-def compare_hists(hist1, hist2):
-    return cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
-
-def get_marked_unmarked_hists(IMGS_MARKED_DIR:str, IMGS_UNMARKED_DIR:str):
     
-    rand_marked_bg = random.choice(os.listdir(IMGS_MARKED_DIR))
-    rand_unmarked_bg = random.choice(os.listdir(IMGS_UNMARKED_DIR))
+def determine_wafer_type(image_path):
+    """
+    Function to determine if an image contains a wafer marker. Used
+    to select a corresponding background image.
 
-    hist_marked = calc_hist(os.path.join(IMGS_MARKED_DIR, rand_marked_bg))
-    hist_unmarked = calc_hist(os.path.join(IMGS_UNMARKED_DIR, rand_unmarked_bg))
+    Checks if there is a marker by looking at the hsv color spectrum. 
 
-    return hist_marked, hist_unmarked
-
-def determine_wafer_type(hist_marked, hist_unmarked, image_path):
-
-    hist_image = calc_hist(image_path)
-
-    if compare_hists(hist_marked, hist_image) > compare_hists(hist_unmarked, hist_image):
-        return 'marked'
-    else:
-        return 'unmarked'
+    Args:
+        - image_path: str = image to analyse
     
-def determine_wafer_type_v2(image_path):
+    Returns:
+        - 'marked' or 'unmarked'
+    """
     image = cv2.imread(image_path)
 
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
@@ -440,6 +418,7 @@ def determine_wafer_type_v2(image_path):
     return 'unmarked'
     
 def get_bg_image(IMGS_MARKED_DIR:str, IMGS_UNMARKED_DIR:str, wafer_type: str):
+    """Function that chooses either a random marked or unmarked background image."""
 
     if wafer_type == 'marked':
         return random.choice(os.listdir(IMGS_MARKED_DIR)), IMGS_MARKED_DIR

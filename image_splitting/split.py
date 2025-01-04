@@ -88,12 +88,10 @@ def split_images(
     IMGS_MARKED_DIR = os.path.join(ROOT_DIR, dataset, 'backgrounds', 'marked_sisio2', '100x')
     IMGS_UNMARKED_DIR = os.path.join(ROOT_DIR, dataset, 'backgrounds', 'unmarked_sisio2', '100x')
 
-    # hist_marked, hist_unmarked = utils.get_marked_unmarked_hists(IMGS_MARKED_DIR, IMGS_UNMARKED_DIR)
-
     for image_id in image_id_positions:
         image_info = data.image_info[image_id]
 
-        wafer_type = utils.determine_wafer_type_v2(image_info['path'])
+        wafer_type = utils.determine_wafer_type(image_info['path'])
 
         print('\nSplitting: {}'.format(image_info['path']))
         print('Wafer type: {}'.format(wafer_type))
