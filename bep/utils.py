@@ -7,6 +7,15 @@ import shutil
 import matplotlib.pyplot as plt
 import skimage
 
+
+# Code for debugging -------------------------------------------
+# import sys
+# ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
+# print('Root directory:',ROOT_DIR)
+# sys.path.append(ROOT_DIR)
+# sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
+# ----------------------------------------------------------------
+
 from bep.dataset import bepDataset
 from bep.exceptions import WeightsNotFound, IncorrectDataSplit
 from tdmms.tdmcoco import CocoDataset, CocoConfig
@@ -697,4 +706,5 @@ class runModel():
         return s
 
 if __name__ == '__main__':
-    create_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
+    pass
+    # create_dir_setup((0.8, 0.1, 0.1), 'data_afm', True)

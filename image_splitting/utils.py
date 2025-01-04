@@ -5,6 +5,7 @@ import os
 import json
 import shutil
 import numpy as np
+import random
 
 from typing import Tuple, List
 from shapely.geometry import Polygon, Point
@@ -167,11 +168,12 @@ def store_image(
     ROOT_DIR: str,
     filename: str,
     flake_image: np.ndarray,
-    data: str
+    data: str,
+    extension: str = '',
 ) -> None:
     """Function to write / store a split image."""
     cv2.imwrite(
-        os.path.join(ROOT_DIR, data, 'images', 'batchsplit', filename),
+        os.path.join(ROOT_DIR, data, 'images', 'batchsplit'+extension, filename),
         cv2.cvtColor(flake_image, cv2.COLOR_RGB2BGR)
     )
 
@@ -362,14 +364,15 @@ def delete_zero_annotation_images(ROOT_DIR: str, annotations_dict: dict, data: s
     Images with zero annotation are created after annotations are moved to
     other split images.
     """
-    for split_image in annotations_dict['images']:
+
+    for split_image in annotations_dict['images'].copy():
         annotation_count = sum(1 for i in annotations_dict['annotations'] if i['image_id'] == split_image['file_name'])
-        
+
         if annotation_count == 0:
             print('Deleting split image: {}'.format(split_image['file_name']))
             os.remove(os.path.join(ROOT_DIR, data, 'images', 'batchsplit', split_image['file_name']))
             annotations_dict['images'].remove(split_image)
-    
+
     return annotations_dict
 
 def extract_bbox_coords(bbox_coords: list):
@@ -386,3 +389,61 @@ def extract_bbox_coords(bbox_coords: list):
     updated_coords = (min(x_coords), min(y_coords), max(x_coords), max(y_coords))
 
     return updated_coords
+
+def calc_hist(image_path):
+    image = cv2.imread(image_path)
+    if image is None:
+        raise ValueError(f"Image at path {image_path} could not be loaded.")
+
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    hist = cv2.calcHist([hsv_image], [0, 1], None, [50, 60], [0, 180, 0, 256])
+
+    hist = cv2.normalize(hist, hist).flatten()
+    return hist
+
+def compare_hists(hist1, hist2):
+    return cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
+
+def get_marked_unmarked_hists(IMGS_MARKED_DIR:str, IMGS_UNMARKED_DIR:str):
+    
+    rand_marked_bg = random.choice(os.listdir(IMGS_MARKED_DIR))
+    rand_unmarked_bg = random.choice(os.listdir(IMGS_UNMARKED_DIR))
+
+    hist_marked = calc_hist(os.path.join(IMGS_MARKED_DIR, rand_marked_bg))
+    hist_unmarked = calc_hist(os.path.join(IMGS_UNMARKED_DIR, rand_unmarked_bg))
+
+    return hist_marked, hist_unmarked
+
+def determine_wafer_type(hist_marked, hist_unmarked, image_path):
+
+    hist_image = calc_hist(image_path)
+
+    if compare_hists(hist_marked, hist_image) > compare_hists(hist_unmarked, hist_image):
+        return 'marked'
+    else:
+        return 'unmarked'
+    
+def determine_wafer_type_v2(image_path):
+    image = cv2.imread(image_path)
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    lower_yellow = np.array([18, 80, 200])
+    upper_yellow = np.array([24, 130, 255])
+
+    mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+
+    if np.any(mask):
+        return 'marked'
+
+    return 'unmarked'
+    
+def get_bg_image(IMGS_MARKED_DIR:str, IMGS_UNMARKED_DIR:str, wafer_type: str):
+
+    if wafer_type == 'marked':
+        return random.choice(os.listdir(IMGS_MARKED_DIR)), IMGS_MARKED_DIR
+    elif wafer_type == 'unmarked':
+        return random.choice(os.listdir(IMGS_UNMARKED_DIR)), IMGS_UNMARKED_DIR
+    else:
+        raise ValueError(f'Unknown wafer type: {wafer_type}')

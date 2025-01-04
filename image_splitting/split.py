@@ -48,9 +48,13 @@ def split_images(
             and split image creation.
         - log_iteration: bool = whether to write images with drawn bboxs during overlap iterations
     """
-    BACKGROUND_IMAGE_DIRECTORY = os.path.join(ROOT_DIR, dataset, 'backgrounds', 'marked_sisio2', '100x')
 
-    utils.reset_image_dir(os.path.join(ROOT_DIR, dataset, 'images', 'batchsplit'))
+    extension = ''
+    if log_iteration:
+        extension = '_log_it'
+
+
+    utils.reset_image_dir(os.path.join(ROOT_DIR, dataset, 'images', 'batchsplit'+extension))
 
     data, _, _ = load_train_val_datasets(dataset, False)
 
@@ -62,7 +66,7 @@ def split_images(
 
     print(f'Images: {images}')
 
-    annotations_file = os.path.join(ROOT_DIR, dataset, 'annotations', 'batchsplit.json')
+    annotations_file = os.path.join(ROOT_DIR, dataset, 'annotations', f'batchsplit{extension}.json')
     annotations_dict = {
         "info": {
             "year": 2024,
@@ -81,12 +85,19 @@ def split_images(
         "images": []
     }
 
-    bg_images = os.listdir(BACKGROUND_IMAGE_DIRECTORY)
+    IMGS_MARKED_DIR = os.path.join(ROOT_DIR, dataset, 'backgrounds', 'marked_sisio2', '100x')
+    IMGS_UNMARKED_DIR = os.path.join(ROOT_DIR, dataset, 'backgrounds', 'unmarked_sisio2', '100x')
+
+    # hist_marked, hist_unmarked = utils.get_marked_unmarked_hists(IMGS_MARKED_DIR, IMGS_UNMARKED_DIR)
 
     for image_id in image_id_positions:
         image_info = data.image_info[image_id]
 
+        wafer_type = utils.determine_wafer_type_v2(image_info['path'])
+
         print('\nSplitting: {}'.format(image_info['path']))
+        print('Wafer type: {}'.format(wafer_type))
+
         image = cv2.imread(image_info['path'])
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         
@@ -102,8 +113,8 @@ def split_images(
             
             already_loaded_ids_flake = [annotation_id]
 
-            bg_image_filename = random.choice(bg_images)
-            bg_image = cv2.imread(os.path.join(BACKGROUND_IMAGE_DIRECTORY, bg_image_filename))
+            bg_image_filename, bg_image_dir = utils.get_bg_image(IMGS_MARKED_DIR, IMGS_UNMARKED_DIR, wafer_type)
+            bg_image = cv2.imread(os.path.join(bg_image_dir, bg_image_filename))
             bg_image = cv2.cvtColor(bg_image, cv2.COLOR_BGR2RGB)
             height, width, _ = bg_image.shape
 
@@ -116,18 +127,18 @@ def split_images(
             print(f'Inital bbox: {bbox}')
             x, y, w, h = (int(i) for i in bbox)
 
-            filename = data.image_info[image_id]['path'].split('\\')[-1].split('.')[0] + f'_split_{annotation_id}' + '.png'
+            filename = image_info['path'].split('\\')[-1].split('.')[0] + f'_split_{annotation_id}' + '.png'
 
             bbox_coords_list = [utils.bbox_to_coords(bbox)]
 
             while first_overlap_check or last_overlap_count > 0:
                 if log_iteration:
                     flake_image = utils.cut_out_flake(bg_image, bbox, image, border)
-                    filename_it = image_info[image_id]['path'].split('\\')[-1].split('.')[0] + f'_split_{annotation_id}' + '_bbox_' + '_'.join([str(i) for i in list(bbox)])+ '.png'
+                    filename_it = image_info['path'].split('\\')[-1].split('.')[0] + f'_split_{annotation_id}' + '_bbox_' + '_'.join([str(i) for i in list(bbox)])+ '.png'
                     coords = utils.bbox_to_coords(bbox)
                     coords = [int(i) for i in coords]
                     cv2.rectangle(flake_image, (coords[0], coords[1]), (coords[2], coords[3]), color=1, thickness=2)
-                    utils.store_image(filename_it, flake_image)
+                    utils.store_image(ROOT_DIR, filename_it, flake_image, dataset, extension)
 
                 if first_overlap_check:
                     print('\nRunning first overlap check..')
@@ -195,7 +206,7 @@ def split_images(
             utils.store_image(ROOT_DIR, filename, flake_image, dataset)
 
     print('\nDeleting images with zero annotations')
-    annotations_dict = utils.delete_zero_annotation_images(ROOT_DIR, annotations_dict, dataset)
+    annotations_dict = utils.delete_zero_annotation_images(ROOT_DIR, annotations_dict.copy(), dataset)
 
     print('Storing annotations file')
     with open(annotations_file, 'w+') as f:
@@ -229,16 +240,22 @@ if __name__ == '__main__':
     parser.add_argument(
         '--data', 
         required=False,
-        default='data',
-        help='data or data_ex'
+        default='data_afm',
+        help='data_afm or data_ex_afm or data_ex_afm_human'
     )
     args = parser.parse_args()
 
-    # with contextlib.redirect_stdout(NullWriter):
-    #     split_images(annotation_threshold=15, border=15)
-
-    split_images(
-        int(args.annotation_threshold),
-        int(args.border),
-        args.data
-    )
+    with contextlib.redirect_stdout(NullWriter):
+        split_images(
+            int(args.annotation_threshold),
+            int(args.border),
+            args.data,
+            log_iteration=False
+        )
+        
+    # split_images(
+    #     int(args.annotation_threshold),
+    #     int(args.border),
+    #     args.data,
+    #     log_iteration=False
+    # )
