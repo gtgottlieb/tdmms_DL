@@ -93,6 +93,9 @@ def split_images(
 
         wafer_type = utils.determine_wafer_type(image_info['path'])
 
+        if wafer_type == 'unmarked':
+            continue
+
         print('\nSplitting: {}'.format(image_info['path']))
         print('Wafer type: {}'.format(wafer_type))
 

@@ -70,7 +70,7 @@ class TrainingConfig(CocoConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = BATCH_SIZE
     LEARNING_MOMENTUM = 0.95
-    NUM_CLASSES = 1 + 3 + 1
+    NUM_CLASSES = 1 + 3 + 0
 
     def __init__(
         self,
@@ -86,8 +86,8 @@ class TrainingConfig(CocoConfig):
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_ext_afm_hum_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_ext_afm_hum_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_nbse2_final_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'nbse2_final_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     starting_material: str = 'MoS2',
@@ -124,8 +124,8 @@ def train_model(
             <material>_mask_rcnn_tdm_120.h5
     """
 
-    check_dir_setup((0.8, 0.1, 0.1), data='data_ex_afm_human', use_bs=True)
-    dataset_train, dataset_val, _ = load_train_val_datasets('data_ex_afm_human', use_bs=True)
+    check_dir_setup((0.8, 0.1, 0.1), data='data_afm', use_bs=True)
+    dataset_train, dataset_val, _ = load_train_val_datasets('data_afm', use_bs=True)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),
