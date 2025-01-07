@@ -707,4 +707,3 @@ class runModel():
 
 if __name__ == '__main__':
     pass
-    # create_dir_setup((0.8, 0.1, 0.1), 'data_afm', True)
