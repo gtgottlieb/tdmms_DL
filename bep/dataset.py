@@ -7,11 +7,11 @@ import cv2
 import numpy as np
 
 # # Code for debugging ---------------------------------------------
-# import sys
-# ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
-# print('Root directory:',ROOT_DIR)
-# sys.path.append(ROOT_DIR)
-# sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
+import sys
+ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
+print('Root directory:',ROOT_DIR)
+sys.path.append(ROOT_DIR)
+sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
 # -------------------------------------------------------------------
 
 from pycocotools.coco import COCO
@@ -19,6 +19,7 @@ from mrcnn.utils import Dataset
 from pycocotools import mask as maskUtils
 
 LABELBOX_NBSE2_SIO2_AFM_ID = 'cm167pqz802tq07023jfr2abh'
+LABELBOX_NBSE2_SIO2_AFM_SIMP_ID = 'cm5nq1vdm035807xwgjbm4v8x'
 LABELBOX_NBSE2_SIO2_AFM_HUMAN_EXTENDED_ID = 'cm46uxql6023s07yx92im8tt4'
 LABELBOX_NBSE2_SIO2_AFM_EXTENDED_ID = 'cm4b4om1a01rd072fgdr7b8lf'
 
@@ -102,18 +103,9 @@ class bepDataset(Dataset):
             "annotations": [],
             "images": [],
         }
-        
-        PROJECT_ID = LABELBOX_NBSE2_SIO2_AFM_ID
-        if 'ex' in annotations_file:
-            PROJECT_ID = LABELBOX_NBSE2_SIO2_AFM_EXTENDED_ID
-            if 'human' in annotations_file:
-                PROJECT_ID = LABELBOX_NBSE2_SIO2_AFM_HUMAN_EXTENDED_ID
-                
-            coco_format['categories'].append({"id": 4, "name": "Massive_NbSe2"})
-            self.class_variable_mapping['massive'] = 4
 
         for row in rows:
-            for label in row['projects'][PROJECT_ID]['labels']:
+            for label in row['projects'][list(row['projects'].keys())[0]]['labels']:
                 for obj in label['annotations']['objects']:                        
                     segmentation = self.generate_segmentation(obj['polygon'])
                     bbox = self.generate_bbox(obj['polygon'])
@@ -350,7 +342,7 @@ class bepDataset(Dataset):
 
 if __name__ == '__main__':    
     inspect = bepDataset()
-    inspect.load_dir(os.path.join(ROOT_DIR, 'data_afm'), 'batch6', reload_annotations=False)
+    inspect.load_dir(os.path.join(ROOT_DIR, 'data_simp_afm'), 'train_bs', reload_annotations=True)
     inspect.prepare()
 
     print(inspect.image_info)

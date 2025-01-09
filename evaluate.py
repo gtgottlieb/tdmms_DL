@@ -28,7 +28,6 @@ from bep.utils import (
     load_train_val_datasets,
     load_train_val_datasets_tdmms,
     check_dir_setup,
-    create_dir_setup,
     load_tdmms_weights
 )
 from bep.dataset import bepDataset
@@ -125,7 +124,7 @@ class EvaluationConfig(CocoConfig):
     IMAGES_PER_GPU = 1
     DETECTION_MIN_CONFIDENCE = 0
 
-def evaluate_model(material: str, weights: str, weights_path: str, dataset_type: str = 'val') -> None:
+def evaluate_model(material: str, weights: str, weights_path: str, dataset_type: str = 'val', use_bs: bool = False) -> None:
     """
     Function to evaluate a model on a dataset. The evaluation consists of calculating the
     precision and recall for multiple IoU thresholds.
@@ -174,9 +173,13 @@ def evaluate_model(material: str, weights: str, weights_path: str, dataset_type:
 
     model.load_weights(MODEL_PATH, by_name=True)
 
+    if use_bs:
+        dataset_type = dataset_type + '_bs'
+
     if material == 'NbSe2':
+        print('Loading NbSe2 {} dataset'.format(dataset_type))
         dataset = bepDataset()
-        coco = dataset.load_dir(os.path.join(ROOT_DIR, 'data'), dataset_type, reload_annotations=True, return_coco=True)
+        coco = dataset.load_dir(os.path.join(ROOT_DIR, 'data_afm'), dataset_type, reload_annotations=True, return_coco=True)
         dataset.prepare()
     else:
         dataset = CocoDataset()
@@ -228,10 +231,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    check_dir_setup(ROOT_DIR, (0.8, 0.1, 0.1))
+    check_dir_setup((0.8, 0.1, 0.1), 'data_afm', use_bs=True)
 
     if args.command == 'dataset':
         evaluate_dataset(args.material)
     
     if args.command == 'model':
-        evaluate_model(args.material, args.weights, args.weights_path)
+        evaluate_model(args.material, args.weights, args.weights_path, args.dataset, True)
