@@ -6,12 +6,12 @@ import json
 import cv2
 import numpy as np
 
-# # Code for debugging ---------------------------------------------
-import sys
-ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
-print('Root directory:',ROOT_DIR)
-sys.path.append(ROOT_DIR)
-sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
+# Code for debugging ---------------------------------------------
+# import sys
+# ROOT_DIR = os.path.abspath(os.path.join(__file__, '../../../'))
+# print('Root directory:',ROOT_DIR)
+# sys.path.append(ROOT_DIR)
+# sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
 # -------------------------------------------------------------------
 
 from pycocotools.coco import COCO
