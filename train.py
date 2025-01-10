@@ -23,13 +23,14 @@ from imgaug import augmenters as iaa
 from tdmms.tdmcoco import CocoConfig
 from bep.utils import (
     check_dir_setup, 
+    create_dir_setup,
     load_train_val_datasets,
     load_tdmms_weights
 )
 from bep.dataset import bepDataset
 from notifications.discord import notify
 
-ROOT_DIR = os.path.abspath("../")
+ROOT_DIR = os.path.abspath("")
 print('Root directory:',ROOT_DIR)
 sys.path.append(ROOT_DIR)
 
@@ -124,7 +125,7 @@ def train_model(
             <material>_mask_rcnn_tdm_120.h5
     """
 
-    # check_dir_setup((0.8, 0.1, 0.1), data='data_simp_afm', use_bs=True)
+    create_dir_setup((0.6, 0.2, 0.2), data='data', use_bs=True)
     dataset_train, dataset_val, _ = load_train_val_datasets('data', use_bs=True, train_val_only=True)
 
     config = TrainingConfig(
