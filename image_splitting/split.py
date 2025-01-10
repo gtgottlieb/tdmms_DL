@@ -241,7 +241,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--data', 
         required=False,
-        default='data_afm',
+        default='data',
         help='data_afm or data_ex_afm or data_ex_afm_human'
     )
     args = parser.parse_args()
