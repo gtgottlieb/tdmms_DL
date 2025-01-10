@@ -43,7 +43,12 @@ from imgaug import augmenters as iaa
 # If the PR is merged then use the original repo.
 # Note: Edit PythonAPI/Makefile and replace "python" with "python3".
 from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
+# from pycocotools.cocoeval import COCOeval
+
+sys.path.append(os.path.abspath(os.path.join(__file__, '../../../')))
+sys.path.append(os.path.abspath(os.path.join(__file__, '../..')))
+
+from bep.cocoeval import COCOeval
 from pycocotools import mask as maskUtils
 
 import zipfile
@@ -371,7 +376,7 @@ def build_coco_results(dataset, image_ids, rois, class_ids, scores, masks):
     return results
 
 
-def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=None):
+def evaluate_coco(model, dataset, coco: COCO, eval_type="bbox", material="NbSe2", limit=0, image_ids=None):
     """Runs official COCO evaluation.
     dataset: A Dataset object with validation data
     eval_type: "bbox" or "segm" for bounding box or segmentation evaluation
@@ -412,8 +417,12 @@ def evaluate_coco(model, dataset, coco, eval_type="bbox", limit=0, image_ids=Non
     coco_results = coco.loadRes(results)
 
     # Evaluate
-    cocoEval = COCOeval(coco, coco_results, eval_type)
-    cocoEval.params.imgIds = coco_image_ids
+    cocoEval = COCOeval(coco, coco_results, eval_type, material)
+    cocoEval.params.imgIds = coco_image_ids 
+    if material == 'NbSe2':
+        cocoEval.params.imgIds_dt = coco_image_ids
+        cocoEval.params.imgIds_gt = sorted([v['file_name'] for _, v in cocoEval.cocoGt.imgs.items()])
+
     cocoEval.evaluate()
     cocoEval.accumulate()
     cocoEval.summarize()

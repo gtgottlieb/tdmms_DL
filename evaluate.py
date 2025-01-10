@@ -192,7 +192,7 @@ def evaluate_model(material: str, weights: str, weights_path: str, dataset_type:
         dataset.prepare()
 
     print("Running evaluation on {} images.".format(len(dataset.image_ids)))
-    evaluate_coco(model, dataset, coco, "bbox")
+    evaluate_coco(model, dataset, coco, "bbox", material)
 
     return None
 
