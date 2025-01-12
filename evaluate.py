@@ -5,9 +5,9 @@ How to run from a terminal:
     1. activate your environment
     2. run: $ py evaluate.py <model or dataset>
         with optional arguments:    
-            --material <NbSe2, Graphene, Mos2, BN, or WTe2> 
-            --weights <NbSe2, Graphene, Mos2, BN, or WTe2>
-            --weights_path <filename of NbSe2 weights>
+            --material <RuCl3, NbSe2, Graphene, Mos2, BN, or WTe2> 
+            --weights <RuCl3, NbSe2, Graphene, Mos2, BN, or WTe2>
+            --weights_path <filename of RuCl3 weights>
             --dataset <val or test>
 """
 
@@ -74,7 +74,7 @@ def evaluate_dataset(material: str) -> None:
     Function to evaluate the dataset. Returns the amount of images and class counts.
     
     Args:
-        - material: NbSe2 (from BEP) or Graphene, Mos2, BN, WTe2 (from TDMMS)
+        - material: RuCl3, NbSe2 (from BEP) or Graphene, Mos2, BN, WTe2 (from TDMMS)
 
     Data directory should be setup as the following:
     ROOT_DIR/
@@ -93,7 +93,7 @@ def evaluate_dataset(material: str) -> None:
                 val/
                 test/
     """
-    if material == 'NbSe2':
+    if material == 'RuCl3':
         dataset_train, dataset_val, dataset_test = load_train_val_datasets('data', use_bs=True)
     else:
         dataset_train, dataset_val = load_train_val_datasets_tdmms(ROOT_DIR, material)
@@ -130,12 +130,12 @@ def evaluate_model(material: str, weights: str, weights_path: str, dataset_type:
     precision and recall for multiple IoU thresholds.
 
     Args:
-        - material: NbSe2 (from BEP) or Graphene, Mos2, BN, WTe2 (from TDMMS).
+        - material: RuCl3, NbSe2 (from BEP) or Graphene, Mos2, BN, WTe2 (from TDMMS).
         - weights: Graphene, Mos2, BN, WTe2 (from TDMMS).
         - weights_path: specific filename af a weights file, used if weights
-                        argument is set to NbSe2.
+                        argument is set to RuCl3.
         - dataset: to use the validation or test data. Only applicable for the
-                        NbSe2 data, not the TDMMS data
+                        RuCl3 or NbSe2 data, not the TDMMS data
 
     Data directory should be setup as the following:
     ROOT_DIR/
@@ -165,7 +165,7 @@ def evaluate_model(material: str, weights: str, weights_path: str, dataset_type:
 
     print('Running evaluation using the {} data and {} weights..'.format(material, weights))
 
-    if weights != 'NbSe2':
+    if weights != 'RuCl3':
         weights_filename = load_tdmms_weights(weights)
         MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights_filename)
     else:
@@ -176,10 +176,10 @@ def evaluate_model(material: str, weights: str, weights_path: str, dataset_type:
     if use_bs:
         dataset_type = dataset_type + '_bs'
 
-    if material == 'NbSe2':
-        print('Loading NbSe2 {} dataset'.format(dataset_type))
+    if material == 'RuCl3':
+        print('Loading RuCl3 {} dataset'.format(dataset_type))
         dataset = bepDataset()
-        coco = dataset.load_dir(os.path.join(ROOT_DIR, 'data_afm'), dataset_type, reload_annotations=True, return_coco=True)
+        coco = dataset.load_dir(os.path.join(ROOT_DIR, 'data'), dataset_type, reload_annotations=True, return_coco=True)
         dataset.prepare()
     else:
         dataset = CocoDataset()
@@ -207,31 +207,31 @@ if __name__ == '__main__':
     parser.add_argument(
         '--material', 
         required=False,
-        default='NbSe2',
-        help='NbSe2 or MoS2'
+        default='RuCl3',
+        help='RuCl3, NbSe2 or MoS2'
     )
     parser.add_argument(
         '--weights', 
         required=False,
-        default='MoS2',
-        help='NbSe2, Graphene, Mos2, BN, or WTe2'
+        default='RuCl3',
+        help='RuCl3, NbSe2, Graphene, Mos2, BN, or WTe2'
     )
     parser.add_argument(
         '--weights_path', 
         required=False,
-        default='nbse2_from_mos2_images_20_epochs_111.h5',
+        default='RuCl3_mos2_5_split_0115.h5',
         help='File name of the weights file'
     )
     parser.add_argument(
         '--dataset', 
         required=False,
         default='val',
-        help='val or test, only for NbSe2 '
+        help='val or test, only for RuCl3 or NbSe2 '
     )
 
     args = parser.parse_args()
 
-    check_dir_setup((0.8, 0.1, 0.1), 'data_afm', use_bs=True)
+    check_dir_setup((0.8, 0.1, 0.1), 'data', use_bs=True)
 
     if args.command == 'dataset':
         evaluate_dataset(args.material)
