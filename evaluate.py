@@ -32,7 +32,7 @@ from bep.utils import (
 )
 from bep.dataset import bepDataset
 
-ROOT_DIR = os.path.abspath("../")
+ROOT_DIR = os.path.abspath("")
 print('Root directory:',ROOT_DIR)
 sys.path.append(ROOT_DIR)
 
@@ -93,9 +93,11 @@ def evaluate_dataset(material: str) -> None:
                 val/
                 test/
     """
-    if material == 'RuCl3':
-        dataset_train, dataset_val, dataset_test = load_train_val_datasets('data', use_bs=True)
+    if material == 'NbSe2':
+        dataset_train, dataset_val, dataset_test = load_train_val_datasets('data', use_bs=False)
     else:
+        print('Did you input your material correctly?')
+        print('Testing from DL_2DMaterials')
         dataset_train, dataset_val = load_train_val_datasets_tdmms(ROOT_DIR, material)
         dataset_test = None
 
@@ -165,7 +167,7 @@ def evaluate_model(material: str, weights: str, weights_path: str, dataset_type:
 
     print('Running evaluation using the {} data and {} weights..'.format(material, weights))
 
-    if weights != 'RuCl3':
+    if weights != 'NbSe2':
         weights_filename = load_tdmms_weights(weights)
         MODEL_PATH = os.path.join(ROOT_DIR, 'weights', weights_filename)
     else:
@@ -176,8 +178,8 @@ def evaluate_model(material: str, weights: str, weights_path: str, dataset_type:
     if use_bs:
         dataset_type = dataset_type + '_bs'
 
-    if material == 'RuCl3':
-        print('Loading RuCl3 {} dataset'.format(dataset_type))
+    if material == 'NbSe2':
+        print('Loading NbSe2 {} dataset'.format(dataset_type))
         dataset = bepDataset()
         coco = dataset.load_dir(os.path.join(ROOT_DIR, 'data'), dataset_type, reload_annotations=True, return_coco=True)
         dataset.prepare()
@@ -207,13 +209,13 @@ if __name__ == '__main__':
     parser.add_argument(
         '--material', 
         required=False,
-        default='RuCl3',
+        default='NbSe2',
         help='RuCl3, NbSe2 or MoS2'
     )
     parser.add_argument(
         '--weights', 
         required=False,
-        default='RuCl3',
+        default='NbSe2',
         help='RuCl3, NbSe2, Graphene, Mos2, BN, or WTe2'
     )
     parser.add_argument(
@@ -231,10 +233,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    check_dir_setup((0.8, 0.1, 0.1), 'data', use_bs=True)
+    check_dir_setup((0.8, 0.1, 0.1), 'data', use_bs=False)
 
     if args.command == 'dataset':
         evaluate_dataset(args.material)
     
     if args.command == 'model':
-        evaluate_model(args.material, args.weights, args.weights_path, args.dataset, True)
+        evaluate_model(args.material, args.weights, args.weights_path, args.dataset, False)
