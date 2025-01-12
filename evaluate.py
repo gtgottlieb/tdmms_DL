@@ -221,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--weights_path', 
         required=False,
-        default='RuCl3_mos2_5_0092.h5',
+        default='starting_weights.h5',
         help='File name of the weights file'
     )
     parser.add_argument(
