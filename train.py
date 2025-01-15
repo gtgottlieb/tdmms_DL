@@ -295,16 +295,16 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Train model'
     )
-
+    
     parser.add_argument(
         '--starting_material', 
         required=False,
         default='MoS2',
-        help='MoS2, WTe2, Graphene or BN'
+        help='NbSe2, MoS2, WTe2, Graphene or BN'
     )
 
     parser.add_argument(
-        '--last_layers',
+        '--last_layers', 
         required=False,
         default=False,
         help='True or False'

@@ -94,7 +94,7 @@ def evaluate_dataset(material: str) -> None:
                 test/
     """
     if material == 'NbSe2':
-        dataset_train, dataset_val, dataset_test = load_train_val_datasets('data', use_bs=False)
+        dataset_train, dataset_val, dataset_test = load_train_val_datasets('data', args.use_bs)
     else:
         print('Did you input your material correctly?')
         print('Testing from DL_2DMaterials')
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--weights_path', 
         required=False,
-        default='starting_weights.h5',
+        default='RuCl3_mos2_5_split_0115.h5',
         help='File name of the weights file'
     )
     parser.add_argument(
@@ -230,13 +230,19 @@ if __name__ == '__main__':
         default='val',
         help='val or test, only for RuCl3 or NbSe2 '
     )
+    parser.add_argument(
+         '--use_bs', 
+        required=False,
+        default=False,
+        help='True or False'
+    )
 
     args = parser.parse_args()
 
-    check_dir_setup((0.8, 0.1, 0.1), 'data', use_bs=False)
+    check_dir_setup((0.8, 0.1, 0.1), 'data', use_bs=args.use_bs)
 
     if args.command == 'dataset':
         evaluate_dataset(args.material)
     
     if args.command == 'model':
-        evaluate_model(args.material, args.weights, args.weights_path, args.dataset, False)
+        evaluate_model(args.material, args.weights, args.weights_path, args.dataset, use_bs=args.use_bs)

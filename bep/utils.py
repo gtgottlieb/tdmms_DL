@@ -137,6 +137,8 @@ def load_tdmms_weights(material: str) -> str:
         return 'graphene_mask_rcnn_tdm_0120.h5'
     elif material.lower() == 'wte2':
         return 'wte2_mask_rcnn_tdm_0071.h5'
+    elif material.lower() == 'nbse2':
+        return 'nbse2_20250110.h5'
     else:
         raise WeightsNotFound(f'Weights for {material} not found.')
 
