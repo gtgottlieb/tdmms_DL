@@ -87,12 +87,13 @@ class TrainingConfig(CocoConfig):
         
         date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
-        self.CHECKPOINT_NAME = f'{date}_nbse2_simp_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
-        self.NAME = f'nbse2_simp_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
+        self.CHECKPOINT_NAME = f'{date}_RuCl3_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}_'
+        self.NAME = f'RuCl3_{starting_material.lower()}_{last_layers}_{total_image_count}_{batch_size}'
 
 def train_model(
     starting_material: str = 'MoS2',
     last_layers: bool = False,
+    data: str = 'data'
 ):
     """
     Function to train MRCNN.
@@ -109,7 +110,8 @@ def train_model(
                     MoS2, BN, Graphene or WTe2
         - last_layers: True or False. Determines if the last layers weights are loaded or randomized.
             Requires a matching amount of classes between transfer and new model.
-    
+        - data: name of data directory
+
     Data directory should be setup as the following:
     ROOT_DIR/
         data/
@@ -125,8 +127,8 @@ def train_model(
             <material>_mask_rcnn_tdm_120.h5
     """
 
-    create_dir_setup((0.6, 0.2, 0.2), data='data', use_bs=True)
-    dataset_train, dataset_val, _ = load_train_val_datasets('data', use_bs=True, train_val_only=True)
+    check_dir_setup((9/11, 1/11, 1/11), data, use_bs=False)
+    dataset_train, dataset_val, _ = load_train_val_datasets(data, use_bs=False, train_val_only=True)
 
     config = TrainingConfig(
         len(dataset_train.image_ids),
@@ -295,7 +297,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Train model'
     )
-    
+
     parser.add_argument(
         '--starting_material', 
         required=False,
@@ -309,6 +311,13 @@ if __name__ == '__main__':
         default=False,
         help='True or False'
     )
+
+    parser.add_argument(
+        '--data', 
+        required=False,
+        default='data',
+        help='data'
+    )
     
     args = parser.parse_args()
 
@@ -316,6 +325,7 @@ if __name__ == '__main__':
         train_model(
             args.starting_material,
             args.last_layers,
+            args.data,
         )
     except Exception as e:
         logging.error("An exception occurred", exc_info=True)
